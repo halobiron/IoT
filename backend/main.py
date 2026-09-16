@@ -43,7 +43,7 @@ def create_app():
     })
 
     led_control_model = api.model('LEDControl', {
-        'led_id': fields.String(required=True, description='ID của LED', enum=['LED1', 'LED2', 'LED3'], example='LED1'),
+        'led_id': fields.String(required=True, description='ID của LED', enum=['LED1', 'LED2', 'LED3', 'ALL'], example='LED1'),
         'action': fields.String(required=True, description='Hành động', enum=['ON', 'OFF'], example='ON')
     })
 
@@ -330,9 +330,16 @@ def create_app():
 
                 if not led_id or not action:
                     return {"error": "led_id và action là bắt buộc"}, 400
+                if led_id not in ('LED1', 'LED2', 'LED3', 'ALL'):
+                    return {"error": "led_id không hợp lệ"}, 400
+                if action not in ('ON', 'OFF'):
+                    return {"error": "action không hợp lệ"}, 400
 
                 led_service = LEDControlService()
-                result = led_service.send_led_command(led_id, action)
+                if led_id == 'ALL':
+                    result = led_service.send_all_led_command(action)
+                else:
+                    result = led_service.send_led_command(led_id, action)
 
                 if result:
                     return {

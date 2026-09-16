@@ -27,7 +27,7 @@ class LEDController {
         if (this._initialized) return;
 
         const ledCards = document.querySelectorAll(
-            '.sensor-card[class*="led"]'
+            ".sensor-card.led1, .sensor-card.led2, .sensor-card.led3"
         );
 
         ledCards.forEach((card) => {
@@ -57,6 +57,21 @@ class LEDController {
                 });
             }
         });
+
+        const allCard = document.querySelector(".sensor-card.led-all");
+        if (allCard) {
+            const toggleSwitch = allCard.querySelector(".toggle-switch");
+            const ledStatus = allCard.querySelector(".led-status");
+            const handler = (e) => {
+                if (toggleSwitch.classList.contains("loading")) {
+                    e.preventDefault();
+                    return;
+                }
+                this.toggleAllLEDs(toggleSwitch, ledStatus);
+            };
+            toggleSwitch.addEventListener("click", handler);
+            this._listeners.push({ element: toggleSwitch, type: "click", handler });
+        }
 
         this._initialized = true;
     }
@@ -119,6 +134,78 @@ class LEDController {
             toggleElement.classList.remove("loading");
             this._processingLEDs.delete(ledId);
         }
+    }
+
+    async toggleAllLEDs(toggleElement, statusElement) {
+        if ([...this._processingLEDs].some((id) => id !== "ALL")) return;
+        const newState = !Object.values(this.ledStates).every(Boolean);
+        const action = newState ? "ON" : "OFF";
+        this._processingLEDs.add("ALL");
+        toggleElement.classList.add("loading");
+        this.updateLEDUI(toggleElement, statusElement, newState, true);
+
+        try {
+            const result = await SensorDataService.controlAllLEDs(action);
+            if (!result || result.status !== "success") {
+                throw new Error(result?.message || "Không thể điều khiển tất cả đèn");
+            }
+            this.startAllStatusPolling(toggleElement, statusElement, newState);
+        } catch (error) {
+            console.error("Lỗi điều khiển tất cả LED:", error);
+            this.updateAllLEDUI(false, "Mất kết nối với phần cứng");
+        } finally {
+            toggleElement.classList.remove("loading");
+            this._processingLEDs.delete("ALL");
+        }
+    }
+
+    startAllStatusPolling(toggleElement, statusElement, expectedState) {
+        let attempts = 0;
+        const poll = setInterval(async () => {
+            attempts++;
+            try {
+                const result = await SensorDataService.getLEDStatus();
+                const states = result?.data?.led_states || {};
+                const pending = result?.data?.pending_commands || {};
+                const actual = Object.keys(this.ledStates).every((id) => states[id] === "ON");
+                if (!Object.values(pending).some(Boolean)) {
+                    Object.keys(this.ledStates).forEach((id) => { this.ledStates[id] = states[id] === "ON"; });
+                    this.syncIndividualLEDUI();
+                    this.updateAllLEDUI(actual);
+                    clearInterval(poll);
+                    return;
+                }
+            } catch (error) { console.error("Lỗi polling tất cả LED:", error); }
+            if (attempts >= 6) {
+                clearInterval(poll);
+                this.updateAllLEDUI(!expectedState, "Mất kết nối với phần cứng");
+            }
+        }, 500);
+    }
+
+    updateAllLEDUI(isOn, errorMessage = null) {
+        const card = document.querySelector(".sensor-card.led-all");
+        if (card) {
+            this.updateLEDUI(card.querySelector(".toggle-switch"), card.querySelector(".led-status"), isOn);
+        }
+
+        if (card && errorMessage) {
+            const status = card.querySelector(".led-status");
+            status.textContent = errorMessage;
+            status.style.color = errorMessage === "Đang xử lý..." ? "#FF9500" : "#FF3B30";
+        }
+    }
+
+    syncIndividualLEDUI() {
+        Object.keys(this.ledStates).forEach((ledId) => {
+            const card = document.querySelector(`.sensor-card.${ledId.toLowerCase()}`);
+            if (!card) return;
+            this.updateLEDUI(
+                card.querySelector(".toggle-switch"),
+                card.querySelector(".led-status"),
+                this.ledStates[ledId]
+            );
+        });
     }
 
     async loadLEDStatesFromBackend() {
@@ -200,6 +287,8 @@ class LEDController {
                 }
             });
 
+            this.updateAllLEDUI(Object.values(this.ledStates).every(Boolean));
+
             this._hasInitializedFromBackend = true;
             console.log(
                 "Hoàn thành khởi tạo trạng thái LED cho trang Home-page:",
@@ -218,7 +307,7 @@ class LEDController {
             statusElement.classList.remove("on");
         } else if (isOn) {
             toggleElement.classList.add("active");
-            statusElement.textContent = "BẬT 💡";
+            statusElement.textContent = "BẬT";
             statusElement.style.color = "#34C759";
             statusElement.classList.add("on");
         } else {
@@ -227,6 +316,7 @@ class LEDController {
             statusElement.style.color = "#999";
             statusElement.classList.remove("on");
         }
+        toggleElement.setAttribute("aria-pressed", String(Boolean(isOn)));
     }
 
     startStatusPolling(ledId, toggleElement, statusElement, expectedState) {
@@ -432,6 +522,11 @@ class LEDController {
                         }
                     }
                 });
+                if (!this._processingLEDs.has("ALL")) {
+                    const allOn = Object.values(this.ledStates).every(Boolean);
+                    const allPending = Object.values(pendingCommands).some(Boolean);
+                    this.updateAllLEDUI(allOn, allPending ? "Đang xử lý..." : null);
+                }
             }
         } catch (error) {
             console.error("Lỗi khi kiểm tra trạng thái LED:", error);

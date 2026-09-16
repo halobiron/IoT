@@ -52,7 +52,6 @@ void setAllLedStates(bool isOn)
   for (size_t i = 0; i < LED_COUNT; i++) setLedState(i, isOn);
 }
 
-// Nhan all:on / all:off de dieu khien toan bo LED; van ho tro led1:on, led2:off.
 bool handleMqttControl(String message)
 {
   message.trim();
@@ -172,7 +171,7 @@ void loop()
 
   float humidity = dhtSensor.readHumidity();
   float temperature = dhtSensor.readTemperature();
-  int light = digitalRead(LIGHT_SENSOR_DO_PIN) == LOW ? 100 : 0;
+  int light = digitalRead(LIGHT_SENSOR_DO_PIN) == LOW ? 0 : 100;
   if (isnan(humidity) || isnan(temperature))
   {
     Serial.println("Sensor error");

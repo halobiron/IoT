@@ -209,6 +209,38 @@ class LEDControlService:
             logger.error(f"LED Control Service error: {e}")
             return False
 
+    def send_all_led_command(self, action: str) -> bool:
+        """Send the aggregate command supported by IoT_Device.ino."""
+        try:
+            if not self.is_connected:
+                logger.warning("LED Control Service: Not connected, cannot send ALL command")
+                threading.Thread(target=self._reconnect, daemon=True).start()
+                return False
+
+            mqtt_command = f"all:{action.lower()}"
+            now = datetime.now()
+            for led_id in LED_IDS:
+                self.pending_commands[led_id] = {
+                    'action': action,
+                    'timestamp': now,
+                    'timeout': 3
+                }
+
+            result = self.client.publish(MQTT_CONTROL_TOPIC, mqtt_command)
+            if result.rc == mqtt.MQTT_ERR_SUCCESS:
+                logger.info(f"LED Control: Command '{mqtt_command}' sent successfully")
+                return True
+
+            for led_id in LED_IDS:
+                self.pending_commands.pop(led_id, None)
+            logger.error(f"LED Control: Failed to publish command, rc={result.rc}")
+            return False
+        except Exception as e:
+            logger.error(f"LED Control Service ALL command error: {e}")
+            for led_id in LED_IDS:
+                self.pending_commands.pop(led_id, None)
+            return False
+
     def get_led_status(self, led_id: str = None) -> Dict:
         if led_id:
             return {led_id: self.led_states.get(led_id, 'OFF')}

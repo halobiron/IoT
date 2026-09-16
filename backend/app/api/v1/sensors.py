@@ -502,13 +502,14 @@ def led_control():
         if not led_id or not action:
             return jsonify({"status": "error", "message": "Missing led_id or action"}), 400
 
-        if led_id not in LED_IDS:
+        if led_id not in (*LED_IDS, 'ALL'):
             return jsonify({"status": "error", "message": "Invalid led_id"}), 400
-
         if action not in ['ON', 'OFF']:
             return jsonify({"status": "error", "message": "Invalid action"}), 400
-
-        success = led_service.send_led_command(led_id, action)
+        if led_id == 'ALL':
+            success = led_service.send_all_led_command(action)
+        else:
+            success = led_service.send_led_command(led_id, action)
 
         if success:
             logger.info(f"LED control command sent: {led_id}_{action}, waiting for hardware confirmation")

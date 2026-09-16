@@ -131,9 +131,13 @@ class SensorDataService {
 
             return await response.json();
         } catch (error) {
-            console.warn("API lỗi, tự động chuyển sang Mock Data:", error);
-            return mockDataService.controlLED(ledId, action);
+            console.error("Không thể gửi lệnh điều khiển LED:", error);
+            throw error;
         }
+    }
+
+    static async controlAllLEDs(action) {
+        return this.controlLED("ALL", action);
     }
 
     static async getLEDStatus() {
