@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dữ liệu cảm biến | Hệ thống Giám sát & Điều khiển IoT</title>
+    <link rel="stylesheet" href="../src/styles/main.css">
+    <link rel="stylesheet" href="../src/styles/pages.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body class="history-table-layout">
+    <div class="container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>IoT Control</h2>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="home-page.html" class="nav-item">
+                    <i class="fas fa-home"></i>
+                    <span>Trang chủ</span>
+                </a>
+                <a href="sensor-data.html" class="nav-item active">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Dữ liệu cảm biến</span>
+                </a>
+                <a href="action-history.html" class="nav-item">
+                    <i class="fas fa-history"></i>
+                    <span>Lịch sử hoạt động</span>
+                </a>
+                <a href="statistics.html" class="nav-item">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Thống kê</span>
+                </a>
+            </nav>
+        </div>
+
+        <div class="main-content">
+            <div class="header">
+                <div class="header-center">
+                    <div class="page-title">
+                        <h1>Dữ liệu cảm biến</h1>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="profile">
+                        <div class="avatar" onclick="window.location.href='profile.html'">L</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content">
+                <div class="data-table-section">
+                    <div class="table-card">
+                            <div class="table-search-controls">
+                                <div class="search-section">
+                                    <div class="history-filter-group">
+                                        <label class="filter-label" for="tableSearchInput">Tìm kiếm thời gian</label>
+                                        <div class="search-input-group plain-search-input">
+                                        <input type="text" id="tableSearchInput"
+                                            placeholder="VD: 08:45:20 17/08/2026">
+                                        <button id="clearSearch" class="clear-btn" style="display: none;">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                        </div>
+                                    </div>
+                                    <div class="history-filter-group">
+                                        <label class="filter-label" for="searchCriteria">Bộ lọc cảm biến</label>
+                                        <select id="searchCriteria" class="search-criteria-select">
+                                            <option value="all">Tất cả</option>
+                                            <option value="temperature">Nhiệt độ</option>
+                                            <option value="light">Ánh sáng</option>
+                                            <option value="humidity">Độ ẩm</option>
+                                        </select>
+                                    </div>
+                                    <button id="applySensorFilters" class="filter-submit-btn" type="button">
+                                        <i class="fas fa-search"></i>
+                                        Tìm kiếm
+                                    </button>
+                                    <button id="manualRefresh" class="refresh-btn icon-only" type="button" aria-label="Làm mới dữ liệu" title="Làm mới dữ liệu">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                        <div class="table-container">
+                            <div class="table-loading" id="tableLoading" style="display: none;">
+                                <div class="loading-spinner"></div>
+                                <p>Đang tải dữ liệu...</p>
+                            </div>
+                            <table id="sensorDataTable" class="sensor-data-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Tên cảm biến</th>
+                                        <th>Giá trị cảm biến</th>
+                                        <th>Thời gian cảm biến</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sensorTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="table-pagination" id="tablePagination">
+                            <div class="pagination-info">
+                                <span id="paginationInfo">Hiển thị 0 - 0 của 0 bản ghi</span>
+                            </div>
+                            <div class="pagination-controls">
+                                <select id="tablePageSize" class="page-size-select">
+                                    <option value="10">10 dòng</option>
+                                    <option value="25">25 dòng</option>
+                                    <option value="50">50 dòng</option>
+                                    <option value="100">100 dòng</option>
+                                </select>
+                                <button id="prevPage" class="page-btn" disabled>
+                                    <i class="fas fa-chevron-left"></i>
+                                    Trước
+                                </button>
+                                <div class="page-numbers" id="pageNumbers">
+                                </div>
+                                <button id="nextPage" class="page-btn" disabled>
+                                    Sau
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="../src/pages/sensor-data-loader.js"></script>
+    <script src="../src/control/profile-control.js"></script>
+</body>
+
+</html>

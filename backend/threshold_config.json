@@ -1,0 +1,14 @@
+{
+    "temperature": {
+        "warning": 35.0,
+        "danger": 40.0
+    },
+    "humidity": {
+        "warning": 70.0,
+        "danger": 85.0
+    },
+    "light": {
+        "warning": 60.0,
+        "danger": 80.0
+    }
+}

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lịch sử hoạt động | Hệ thống Giám sát & Điều khiển IoT</title>
+    <link rel="stylesheet" href="../src/styles/main.css">
+    <link rel="stylesheet" href="../src/styles/pages.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+</head>
+
+<body class="history-table-layout">
+    <div class="container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>IoT Control</h2>
+            </div>
+            <nav class="nav-menu">
+                <a href="home-page.html" class="nav-item">
+                    <i class="fas fa-home"></i>
+                    <span>Trang chủ</span>
+                </a>
+                <a href="sensor-data.html" class="nav-item">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Dữ liệu cảm biến</span>
+                </a>
+                <a href="action-history.html" class="nav-item active">
+                    <i class="fas fa-history"></i>
+                    <span>Lịch sử hoạt động</span>
+                </a>
+                <a href="statistics.html" class="nav-item">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Thống kê</span>
+                </a>
+            </nav>
+        </div>
+
+        <div class="main-content">
+            <div class="header">
+                <div class="header-center">
+                    <div class="page-title">
+                        <h1>Lịch sử hoạt động</h1>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="profile">
+                        <div class="avatar" onclick="window.location.href='profile.html'">L</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content action-history-page">
+                <div id="action-history-container">
+                    <div class="data-table-section">
+                        <div class="table-card">
+                            <div class="table-header">
+                                <h3>Bảng lịch sử hoạt động</h3>
+                                <div class="table-controls">
+                                    <button id="actionManualRefresh" class="refresh-btn">
+                                        <i class="fas fa-sync-alt"></i>
+                                        Làm mới
+                                    </button>
+                                    <button id="actionExportCSV" class="export-btn">
+                                        <i class="fa-solid fa-file-export"></i>
+                                        Xuất CSV
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="table-search-controls">
+                                <div class="search-section">
+                                    <label class="filter-label">Thiết bị</label>
+                                    <div class="search-criteria-group">
+                                        <select id="actionFilterDevice" class="search-criteria-select">
+                                            <option value="all">Tất cả</option>
+                                            <option value="LED1">LED 1</option>
+                                            <option value="LED2">LED 2</option>
+                                            <option value="LED3">LED 3</option>
+                                        </select>
+                                    </div>
+                                    <label class="filter-label">Trạng thái</label>
+                                    <div class="search-criteria-group">
+                                        <select id="actionFilterState" class="search-criteria-select">
+                                            <option value="all">Tất cả</option>
+                                            <option value="ON">Bật</option>
+                                            <option value="OFF">Tắt</option>
+                                        </select>
+                                    </div>
+                                    <div class="search-input-group">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" id="actionHistorySearchInput"
+                                            placeholder="Tìm kiếm theo thời gian">
+                                        <button id="actionHistoryClearSearch" class="clear-btn" style="display: none;">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="table-container">
+                                <div class="table-loading" id="actionTableLoading" style="display: none;">
+                                    <div class="loading-spinner"></div>
+                                    <p>Đang tải dữ liệu...</p>
+                                </div>
+                                <table id="actionHistoryTable" class="sensor-data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>STT</th>
+                                            <th>Thiết bị</th>
+                                            <th>Trạng thái</th>
+                                            <th>Thời gian</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="actionHistoryTableBody">
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="table-pagination" id="actionTablePagination">
+                                <div class="pagination-info">
+                                    <span id="actionPaginationInfo">Hiển thị 0 - 0 của 0 bản ghi</span>
+                                </div>
+                                <div class="pagination-controls">
+                                    <select id="actionTablePageSize" class="page-size-select">
+                                        <option value="10">10 dòng</option>
+                                        <option value="25">25 dòng</option>
+                                        <option value="50">50 dòng</option>
+                                        <option value="100">100 dòng</option>
+                                    </select>
+                                    <button id="actionPrevPage" class="page-btn" disabled>
+                                        <i class="fas fa-chevron-left"></i>
+                                        Trước
+                                    </button>
+                                    <div class="page-numbers" id="actionPageNumbers">
+                                    </div>
+                                    <button id="actionNextPage" class="page-btn" disabled>
+                                        Sau
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script type="module">
+        import ActionHistoryLoader from '../src/pages/action-history-loader.js';
+
+        const loader = new ActionHistoryLoader('action-history-container');
+        loader.load(100);
+    </script>
+    <script src="../src/control/profile-control.js"></script>
+</body>
+
+</html>

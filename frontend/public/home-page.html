@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trang chủ | Hệ thống Giám sát & Điều khiển IoT</title>
+    <link rel="stylesheet" href="../src/styles/main.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+</head>
+
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>IoT Control</h2>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="home-page.html" class="nav-item active">
+                    <i class="fas fa-home"></i>
+                    <span>Trang chủ</span>
+                </a>
+                <a href="sensor-data.html" class="nav-item">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Dữ liệu cảm biến</span>
+                </a>
+                <a href="action-history.html" class="nav-item">
+                    <i class="fas fa-history"></i>
+                    <span>Lịch sử hoạt động</span>
+                </a>
+                <a href="statistics.html" class="nav-item">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Thống kê</span>
+                </a>
+            </nav>
+        </div>
+
+        <div class="main-content">
+            <div class="header">
+                <div class="header-center">
+                    <div class="page-title">
+                        <h1>Trang chủ</h1>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="profile">
+                        <div class="avatar" onclick="window.location.href='profile.html'">L</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content">
+                <div class="sensor-grid">
+                    <div class="sensor-card temperature">
+                        <div class="card-header">
+                            <span class="sensor-name">Cảm biến nhiệt độ</span>
+                            <div class="threshold-stat-icon temperature">
+                                <i class="fas fa-temperature-high"></i>
+                            </div>
+                        </div>
+                        <div class="sensor-value">--°C</div>
+                    </div>
+
+                    <div class="sensor-card light">
+                        <div class="card-header">
+                            <span class="sensor-name">Cảm biến ánh sáng</span>
+                            <div class="threshold-stat-icon light">
+                                <i class="fas fa-sun"></i>
+                            </div>
+                        </div>
+                        <div class="sensor-value">--%</div>
+                    </div>
+
+                    <div class="sensor-card humidity">
+                        <div class="card-header">
+                            <span class="sensor-name">Cảm biến độ ẩm</span>
+                            <div class="threshold-stat-icon humidity">
+                                <i class="fas fa-droplet"></i>
+                            </div>
+                        </div>
+                        <div class="sensor-value">--%</div>
+                    </div>
+                </div>
+
+                <div class="led-control-grid">
+                    <div class="sensor-card led1">
+                        <div class="led-card-header">
+                            <div class="led-title-group">
+                                <span class="sensor-name">Đèn LED 1</span>
+                                <span class="led-status">TẮT</span>
+                            </div>
+                            <div class="toggle-switch">
+                                <div class="toggle-slider"></div>
+                            </div>
+                        </div>
+                        <div class="led-stats-badge" id="stats-badge-LED1">
+                            <span class="stats-count">0</span>
+                            <span class="stats-label">lần bật hôm nay</span>
+                        </div>
+                    </div>
+
+                    <div class="sensor-card led2">
+                        <div class="led-card-header">
+                            <div class="led-title-group">
+                                <span class="sensor-name">Đèn LED 2</span>
+                                <span class="led-status">TẮT</span>
+                            </div>
+                            <div class="toggle-switch">
+                                <div class="toggle-slider"></div>
+                            </div>
+                        </div>
+                        <div class="led-stats-badge" id="stats-badge-LED2">
+                            <span class="stats-count">0</span>
+                            <span class="stats-label">lần bật hôm nay</span>
+                        </div>
+                    </div>
+
+                    <div class="sensor-card led3">
+                        <div class="led-card-header">
+                            <div class="led-title-group">
+                                <span class="sensor-name">Đèn LED 3</span>
+                                <span class="led-status">TẮT</span>
+                            </div>
+                            <div class="toggle-switch">
+                                <div class="toggle-slider"></div>
+                            </div>
+                        </div>
+                        <div class="led-stats-badge" id="stats-badge-LED3">
+                            <span class="stats-count">0</span>
+                            <span class="stats-label">lần bật hôm nay</span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="charts-data-section">
+                    <div class="chart-card single-chart">
+                        <div class="chart-header">
+                            <h3 id="chartTitle">Dữ liệu cảm biến theo thời gian</h3>
+                            <div class="chart-controls">
+                                <select id="sensorTypeSelector">
+                                    <option value="all" selected>Tất cả cảm biến</option>
+                                    <option value="temperature">Nhiệt độ</option>
+                                    <option value="light">Ánh sáng</option>
+                                    <option value="humidity">Độ ẩm</option>
+                                </select>
+                                <select id="dataLimitSelector">
+                                    <option value="50" selected>50 dữ liệu gần nhất</option>
+                                    <option value="100">100 dữ liệu gần nhất</option>
+                                    <option value="200">200 dữ liệu gần nhất</option>
+                                    <option value="500">500 dữ liệu gần nhất</option>
+                                    <option value="all">Tất cả dữ liệu</option>
+                                </select>
+                                <input type="date" id="datePicker" class="date-picker">
+                            </div>
+                        </div>
+                        <div class="chart-area">
+                            <div class="chart-container-wrapper">
+                                <div class="chart-container">
+                                    <canvas id="sensorChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="chart-unit" id="chartUnit">°C</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script type="module" src="../src/pages/home-page-loader.js"></script>
+    <script src="../src/control/profile-control.js"></script>
+</body>
+
+</html>

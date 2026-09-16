@@ -1,0 +1,54 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập | IoT Control</title>
+    <link rel="stylesheet" href="../src/styles/main.css">
+    <link rel="stylesheet" href="../src/styles/login.css">
+</head>
+
+<body class="login-page">
+    <div class="login-card">
+        <div class="login-header">
+            <h1>Đăng nhập</h1>
+            <p>Hệ thống Giám sát & Điều khiển IoT</p>
+        </div>
+
+        <div id="loginAlert" class="login-alert"></div>
+
+        <form id="loginForm" class="login-form">
+            <div class="form-group">
+                <label class="form-label" for="username">Tên đăng nhập</label>
+                <input 
+                    type="text" 
+                    id="username" 
+                    class="form-input" 
+                    placeholder="Nhập tên đăng nhập" 
+                    autocomplete="username" 
+                    required 
+                    autofocus
+                >
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="password">Mật khẩu</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    class="form-input" 
+                    placeholder="Nhập mật khẩu" 
+                    autocomplete="current-password" 
+                    required
+                >
+            </div>
+
+            <button type="submit" id="submitBtn" class="btn-login">Đăng nhập</button>
+        </form>
+    </div>
+
+    <script src="../src/control/login-control.js"></script>
+</body>
+
+</html>

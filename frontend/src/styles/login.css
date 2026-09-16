@@ -1,0 +1,122 @@
+﻿/* ==========================================================================
+   Login Page Styles - Clean, Minimalist & Synchronized
+   ========================================================================== */
+
+.login-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--bg-primary);
+    padding: 20px;
+    font-family: var(--font-family);
+}
+
+.login-card {
+    width: 100%;
+    max-width: 380px;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    padding: 32px 28px;
+    box-shadow: var(--shadow-md);
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.login-header h1 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+}
+
+.login-header p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.form-input {
+    width: 100%;
+    height: 40px;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    padding: 0 14px;
+    font-family: var(--font-family);
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    outline: none;
+    transition: var(--transition-smooth);
+}
+
+.form-input:focus {
+    border-color: var(--color-primary);
+    background-color: #0b1220;
+}
+
+.form-input::placeholder {
+    color: var(--text-muted);
+    font-size: 0.825rem;
+}
+
+.login-alert {
+    display: none;
+    font-size: 0.825rem;
+    padding: 10px 12px;
+    border-radius: var(--border-radius-md);
+    background-color: var(--color-danger-rgba);
+    border: 1px solid rgba(244, 63, 94, 0.25);
+    color: #fda4af;
+    margin-bottom: 4px;
+}
+
+.login-alert.show {
+    display: block;
+}
+
+.btn-login {
+    width: 100%;
+    height: 40px;
+    background-color: var(--color-primary);
+    border: none;
+    border-radius: var(--border-radius-md);
+    color: #ffffff;
+    font-family: var(--font-family);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 4px;
+    transition: var(--transition-smooth);
+}
+
+.btn-login:hover {
+    background-color: var(--color-primary-hover);
+}
+
+.btn-login:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
