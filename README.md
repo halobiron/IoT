@@ -38,20 +38,35 @@ This project implements a complete IoT monitoring system including:
 ## System Architecture
 
 ```text
-┌─────────────────┐            ┌─────────────────┐            ┌─────────────────┐
-│  ESP32 Device   │            │   Backend API   │            │    Frontend     │
-│                 │            │     (Flask)     │            │    (HTML/JS)    │
-│                 │    MQTT    │                 │    HTTP    │                 │
-│ - DHT11 Sensor  │ ─────────► │ - MQTT Client   │ ◄───────── │ - Real-time UI  │
-│ - Light Sensor  │            │ - REST API      │            │ - Charts        │
-│ - 3x LED Control│            │ - MongoDB       │            │ - Data Tables   │
-│ - WiFi + MQTT   │            │ - NoSQL Queries │            │ - LED Controls  │
-└─────────────────┘            └─────────────────┘            └─────────────────┘
+┌─────────────────────┐       MQTT/TLS       ┌─────────────────────┐
+│ ESP32                │ ◄─────────────────► │ HiveMQ Cloud        │
+│ DHT11 + light sensor│                      │ MQTT broker         │
+│ 3 physical LEDs     │                      └──────────┬──────────┘
+└─────────────────────┘                                 │
+                                                        │ MQTT/TLS
+                                             ┌──────────▼──────────┐
+                                             │ Flask application    │
+                                             │ backend/main.py      │
+                                             │                      │
+                                             │ REST API + Swagger   │
+                                             │ MQTT receiver/       │
+                                             │ command services     │
+                                             └───────┬───────┬──────┘
+                                                     │       │
+                                                   MongoDB  HTTP/JSON
+                                                     │       │
+                                             ┌───────▼───┐ ┌─▼──────────────┐
+                                             │ sensor_data│ │ Static frontend │
+                                             │ action_    │ │ frontend/public │
+                                             │ history    │ │ + frontend/src  │
+                                             └────────────┘ └────────────────┘
 ```
+
+The project is deployed as one Flask process. It serves the static pages under `frontend/public` and JavaScript/CSS under `frontend/src`, exposes the `/api/v1` API, and starts the MQTT receiver in a background thread. The ESP32 publishes sensor readings and LED status to the broker; the backend persists them in MongoDB and publishes LED control commands back to the device.
 
 ## Data Model (ERD)
 
-The import-ready Mermaid diagram is available in [`erd.mmd`](erd.mmd). The persisted MongoDB collections are `sensor_data` and `action_history`. `LED_DEVICE` is an application-level reference entity; `action_history.led` is a logical reference to `LED_DEVICE.led_id`, not a MongoDB-enforced foreign key.
+The persisted MongoDB collections are `sensor_data` and `action_history`. `LED_DEVICE` is an application-level reference entity; `action_history.led` is a logical reference to `LED_DEVICE.led_id`, not a MongoDB-enforced foreign key.
 
 ```mermaid
 erDiagram
@@ -558,8 +573,8 @@ IoT_Project/
 │   │   │   ├── swagger_config.py
 │   │   │   ├── __init__.py
 │   │   │   └── v1/
+│   │   │       ├── auth.py
 │   │   │       ├── sensors.py
-│   │   │       ├── sensors_swagger.py
 │   │   │       └── __init__.py
 │   │   │
 │   │   ├── core/                                          # Configuration and database
@@ -582,18 +597,22 @@ IoT_Project/
 │   │       ├── validation_service.py
 │   │       └── __init__.py
 │   │
-│   └── tests/
-│       └── __init__.py
+│   ├── threshold_config.json                         # Sensor thresholds
+│   └── (runtime .env is not committed)
 │
 ├── frontend/
 │   ├── public/                                            # HTML pages
 │   │   ├── action-history.html
 │   │   ├── home-page.html
+│   │   ├── login.html
 │   │   ├── profile.html
-│   │   └── sensor-data.html
+│   │   ├── sensor-data.html
+│   │   └── statistics.html
 │   │
 │   └── src/
 │       ├── components/                                    # UI components
+│       │   ├── led-stats-badge.js
+│       │   ├── threshold-settings-popup.js
 │       │   └── update-indicator.js
 │       │
 │       ├── control/                                       # Controllers
@@ -601,8 +620,11 @@ IoT_Project/
 │       │   ├── home-page-chart-control.js
 │       │   ├── home-page-led-control.js
 │       │   ├── home-page-sensor-card-control.js
+│       │   ├── led-stats-panel-control.js
+│       │   ├── login-control.js
 │       │   ├── profile-control.js
-│       │   └── sensor-data-table-control.js
+│       │   ├── sensor-data-table-control.js
+│       │   └── threshold-stats-control.js
 │       │
 │       ├── pages/                                         # Page loaders
 │       │   ├── action-history-loader.js
@@ -610,7 +632,9 @@ IoT_Project/
 │       │   └── sensor-data-loader.js
 │       │
 │       ├── services/                                      # API services
-│       │   └── api.js
+│       │   ├── api.js
+│       │   ├── auth-service.js
+│       │   └── mock-data.js
 │       │
 │       ├── styles/                                        # CSS files
 │       │   ├── main.css
@@ -623,6 +647,8 @@ IoT_Project/
 │           │
 │           ├── sensors/
 │           │   └── home-page-sensor-card.js
+│           ├── stats/
+│           │   └── led-stats-panel.js
 │           │
 │           └── table/
 │               ├── action-history-table.js
@@ -631,6 +657,7 @@ IoT_Project/
 └── hardware/
     └── IoT_Device/
         ├── IoT_Device.ino                                 # ESP32 code
+        ├── isrgrootx1.pem                                 # TLS certificate
         └── pubsub.txt                                     # MQTT test commands
 ```
 
@@ -686,12 +713,13 @@ Backend uses Flask with modular architecture:
 
 ### Frontend Development
 
-Frontend uses vanilla JavaScript with MVC architecture:
+Frontend uses vanilla JavaScript with a modular structure:
 
--   **Controllers** handle logic and API calls
--   **Views** display UI components
--   **Services** manage API communication
--   **Components** reusable UI elements
+-   **Pages** load each HTML page and wire its modules
+-   **Control** modules handle page interactions and state changes
+-   **View** modules render charts, cards, panels, and tables
+-   **Services** handle API calls, authentication, and mock fallback data
+-   **Components** provide reusable UI elements
 
 ### Testing MQTT
 

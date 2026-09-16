@@ -39,20 +39,35 @@ Dự án này triển khai một hệ thống giám sát IoT hoàn chỉnh bao g
 ## Kiến Trúc Hệ Thống
 
 ```text
-┌─────────────────────┐            ┌──────────────────┐            ┌────────────────────────────┐
-│   Thiết Bị ESP32    │            │   Backend API    │            │          Frontend          │
-│                     │            │     (Flask)      │            │          (HTML/JS)         │
-│                     │            │                  │            │                            │
-│ - Cảm Biến DHT11    │    MQTT    │ - MQTT Client    │    HTTP    │ - Giao Diện Thời Gian Thực │
-│ - Cảm Biến Ánh Sáng │ ─────────► │ - REST API       │ ◄───────── │ - Biểu Đồ                  │
-│ - 3x Điều Khiển LED │            │ - MongoDB        │            │ - Bảng Dữ Liệu             │
-│ - WiFi + MQTT       │            │ - Truy Vấn NoSQL │            │ - Điều Khiển LED           │
-└─────────────────────┘            └──────────────────┘            └────────────────────────────┘
+┌─────────────────────┐       MQTT/TLS       ┌─────────────────────┐
+│ ESP32               │ ◄─────────────────► │ HiveMQ Cloud        │
+│ DHT11 + cảm biến    │                      │ MQTT broker         │
+│ ánh sáng + 3 LED    │                      └──────────┬──────────┘
+└─────────────────────┘                                 │
+                                                        │ MQTT/TLS
+                                             ┌──────────▼──────────┐
+                                             │ Ứng dụng Flask       │
+                                             │ backend/main.py      │
+                                             │                      │
+                                             │ REST API + Swagger   │
+                                             │ MQTT receiver và     │
+                                             │ service điều khiển   │
+                                             └───────┬───────┬──────┘
+                                                     │       │
+                                                   MongoDB  HTTP/JSON
+                                                     │       │
+                                             ┌───────▼───┐ ┌─▼──────────────┐
+                                             │ sensor_data│ │ Frontend tĩnh   │
+                                             │ action_    │ │ frontend/public │
+                                             │ history    │ │ + frontend/src  │
+                                             └────────────┘ └────────────────┘
 ```
+
+Dự án được triển khai trong một tiến trình Flask. Flask phục vụ các trang tĩnh trong `frontend/public`, JavaScript/CSS trong `frontend/src`, cung cấp API `/api/v1` và khởi chạy MQTT receiver trong một thread nền. ESP32 gửi dữ liệu cảm biến/trạng thái LED lên broker; backend lưu dữ liệu vào MongoDB và gửi lệnh điều khiển LED ngược lại cho thiết bị.
 
 ## Mô Hình Dữ Liệu (ERD)
 
-Sơ đồ ERD có thể import trực tiếp tại [`erd.mmd`](erd.mmd). Dự án sử dụng MongoDB: `sensor_data` và `action_history` là hai collection được lưu trữ; `LED_DEVICE` mô tả thiết bị LED ở tầng ứng dụng. Trường `led` trong `action_history` là tham chiếu logic tới `LED_DEVICE.led_id`, không phải khóa ngoại do MongoDB bắt buộc.
+Dự án sử dụng MongoDB: `sensor_data` và `action_history` là hai collection được lưu trữ; `LED_DEVICE` mô tả thiết bị LED ở tầng ứng dụng. Trường `led` trong `action_history` là tham chiếu logic tới `LED_DEVICE.led_id`, không phải khóa ngoại do MongoDB bắt buộc.
 
 ```mermaid
 erDiagram
@@ -575,8 +590,8 @@ IoT_Project/
 │   │   │   ├── swagger_config.py
 │   │   │   ├── __init__.py
 │   │   │   └── v1/
+│   │   │       ├── auth.py
 │   │   │       ├── sensors.py
-│   │   │       ├── sensors_swagger.py
 │   │   │       └── __init__.py
 │   │   │
 │   │   ├── core/                                          # Cấu hình và cơ sở dữ liệu
@@ -599,18 +614,22 @@ IoT_Project/
 │   │       ├── validation_service.py
 │   │       └── __init__.py
 │   │
-│   └── tests/
-│       └── __init__.py
+│   ├── threshold_config.json                         # Ngưỡng cảm biến
+│   └── (file .env runtime không commit)
 │
 ├── frontend/
 │   ├── public/                                            # Trang HTML
 │   │   ├── action-history.html
 │   │   ├── home-page.html
+│   │   ├── login.html
 │   │   ├── profile.html
-│   │   └── sensor-data.html
+│   │   ├── sensor-data.html
+│   │   └── statistics.html
 │   │
 │   └── src/
 │       ├── components/                                    # Thành phần UI
+│       │   ├── led-stats-badge.js
+│       │   ├── threshold-settings-popup.js
 │       │   └── update-indicator.js
 │       │
 │       ├── control/                                       # Bộ điều khiển
@@ -618,8 +637,11 @@ IoT_Project/
 │       │   ├── home-page-chart-control.js
 │       │   ├── home-page-led-control.js
 │       │   ├── home-page-sensor-card-control.js
+│       │   ├── led-stats-panel-control.js
+│       │   ├── login-control.js
 │       │   ├── profile-control.js
-│       │   └── sensor-data-table-control.js
+│       │   ├── sensor-data-table-control.js
+│       │   └── threshold-stats-control.js
 │       │
 │       ├── pages/                                         # Trình tải trang
 │       │   ├── action-history-loader.js
@@ -627,7 +649,9 @@ IoT_Project/
 │       │   └── sensor-data-loader.js
 │       │
 │       ├── services/                                      # Dịch vụ API
-│       │   └── api.js
+│       │   ├── api.js
+│       │   ├── auth-service.js
+│       │   └── mock-data.js
 │       │
 │       ├── styles/                                        # File CSS
 │       │   ├── main.css
@@ -640,6 +664,8 @@ IoT_Project/
 │           │
 │           ├── sensors/
 │           │   └── home-page-sensor-card.js
+│           ├── stats/
+│           │   └── led-stats-panel.js
 │           │
 │           └── table/
 │               ├── action-history-table.js
@@ -648,6 +674,7 @@ IoT_Project/
 └── hardware/
     └── IoT_Device/
         ├── IoT_Device.ino                                 # Code ESP32
+        ├── isrgrootx1.pem                                 # Chứng chỉ TLS
         └── pubsub.txt                                     # Lệnh test MQTT
 ```
 
@@ -703,12 +730,13 @@ Backend sử dụng Flask với kiến trúc mô-đun:
 
 ### Phát Triển Frontend
 
-Frontend sử dụng JavaScript thuần với kiến trúc MVC:
+Frontend sử dụng JavaScript thuần với cấu trúc module:
 
--   **Controllers** xử lý logic và gọi API
--   **Views** hiển thị thành phần UI
--   **Services** quản lý giao tiếp API
--   **Components** thành phần UI có thể tái sử dụng
+-   **Pages** tải từng trang HTML và kết nối các module
+-   **Control** xử lý tương tác và thay đổi trạng thái
+-   **View** hiển thị biểu đồ, thẻ, panel và bảng
+-   **Services** gọi API, xác thực và cung cấp dữ liệu mock dự phòng
+-   **Components** chứa các thành phần giao diện dùng lại
 
 ### Test MQTT
 
