@@ -387,17 +387,97 @@ body {
     transition: opacity 0.1s ease;
 }
 
-/* LED Controls Grid */
+/* LED Section & Controls */
+.led-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.led-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.section-title-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.section-heading {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+}
+
+.section-badge {
+    font-size: 0.725rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+
+.master-switch-pill {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 12px !important;
+    padding: 6px 14px !important;
+    min-height: 38px !important;
+    height: 38px !important;
+    border-radius: 999px !important;
+    background-color: var(--bg-card) !important;
+    border: 1px solid var(--border-color) !important;
+    box-shadow: var(--shadow-sm) !important;
+    box-sizing: border-box !important;
+    transition: var(--transition-smooth) !important;
+}
+
+.master-switch-pill:hover {
+    border-color: var(--border-color-hover) !important;
+}
+
+.master-switch-pill .master-label {
+    font-size: 0.825rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.master-switch-pill .led-status {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+    min-width: 28px;
+    text-align: center;
+}
+
+.master-switch-pill .led-status.on {
+    color: var(--color-success) !important;
+}
+
 .led-control-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 16px;
 }
 
 .led-control-grid .sensor-card {
-    padding: 16px 18px;
-    min-height: auto;
-    gap: 12px;
+    padding: 18px 20px;
+    min-height: 110px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
 }
 
 .led-card-header {
@@ -434,7 +514,11 @@ body {
 /* Apple-style Toggle Switch */
 .toggle-switch {
     width: 44px;
+    min-width: 44px;
+    max-width: 44px;
     height: 24px;
+    min-height: 24px;
+    max-height: 24px;
     background-color: #334155;
     border-radius: 999px;
     position: relative;
@@ -444,6 +528,10 @@ body {
     flex-shrink: 0;
     border: 0;
     padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    display: inline-block;
+    outline: none;
 }
 
 .toggle-slider {
@@ -456,6 +544,7 @@ body {
     left: 3px;
     transition: left 0.2s ease;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
 }
 
 .toggle-switch.active {
@@ -584,6 +673,25 @@ input[type="number"]:focus,
 
 button {
     font-family: var(--font-family);
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    transition: var(--transition-smooth);
+}
+
+button:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.btn,
+.btn-primary,
+.btn-secondary {
+    font-family: var(--font-family);
     font-size: 0.825rem;
     font-weight: 600;
     border-radius: var(--border-radius-md);
@@ -599,15 +707,6 @@ button {
     box-sizing: border-box;
     vertical-align: middle;
     border: 1px solid transparent;
-}
-
-button:active:not(:disabled) {
-    transform: translateY(1px);
-}
-
-button:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
 }
 
 .btn-primary {
