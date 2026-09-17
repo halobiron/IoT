@@ -126,6 +126,7 @@ class ActionHistoryTableControl {
     }
 
     updateAllDevices(items) {
+        if (!Array.isArray(items)) return;
         items.forEach((item) => {
             const device = (item.led || item.device || "").toString();
             if (device) this.allDevices.add(device);
@@ -141,9 +142,9 @@ class ActionHistoryTableControl {
         const newDeviceCount = this.allDevices.size;
 
         const hasLEDOptions =
-            select.querySelector('option[value="LED1"]') &&
-            select.querySelector('option[value="LED2"]') &&
-            select.querySelector('option[value="LED3"]') &&
+            !!select.querySelector('option[value="LED1"]') &&
+            !!select.querySelector('option[value="LED2"]') &&
+            !!select.querySelector('option[value="LED3"]');
 
         if (!hasLEDOptions || newDeviceCount > oldDeviceCount) {
             this.renderDeviceFilter();
@@ -157,9 +158,9 @@ class ActionHistoryTableControl {
         const currentValue = select.value;
 
         const hasLEDOptions =
-            select.querySelector('option[value="LED1"]') &&
-            select.querySelector('option[value="LED2"]') &&
-            select.querySelector('option[value="LED3"]') &&
+            !!select.querySelector('option[value="LED1"]') &&
+            !!select.querySelector('option[value="LED2"]') &&
+            !!select.querySelector('option[value="LED3"]');
 
         if (!hasLEDOptions) {
             select.innerHTML = "";
@@ -168,7 +169,7 @@ class ActionHistoryTableControl {
             defaultOpt.textContent = "Tất cả";
             select.appendChild(defaultOpt);
 
-        const ledOptions = ["LED1", "LED2", "LED3"];
+            const ledOptions = ["LED1", "LED2", "LED3"];
             ledOptions.forEach((led) => {
                 const opt = document.createElement("option");
                 opt.value = led;

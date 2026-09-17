@@ -34,7 +34,7 @@ class ActionHistoryTable {
         const thead = document.createElement("thead");
         thead.innerHTML = `
       <tr>
-        <th>ID</th>
+        <th>STT</th>
         <th>Thiết bị</th>
         <th>Hành động</th>
         <th>Trạng thái</th>
@@ -69,32 +69,33 @@ class ActionHistoryTable {
         searchControls.innerHTML = `
         <div class="search-section">
           <div class="history-filter-group">
-          <label class="filter-label" for="actionHistorySearchInput">Tìm kiếm thời gian</label>
-          <div class="search-input-group">
-            <i class="fas fa-search"></i>
-            <input type="text" id="actionHistorySearchInput" placeholder="VD: 17/08/2026 hoặc 22:38:00 17/08/2026">
-            <button id="actionHistoryClearSearch" class="clear-btn" type="button" aria-label="Xóa tìm kiếm" style="display:none;"><i class="fas fa-times"></i></button>
-          </div>
-          </div>
-          <div class="history-filter-group">
-          <label class="filter-label" for="actionFilterDevice">Thiết bị</label>
-          <select id="actionFilterDevice" class="filter-select">
-            <option value="all">Tất cả</option>
-            <option value="LED1">LED1</option>
-            <option value="LED2">LED2</option>
-            <option value="LED3">LED3</option>
-          </select>
+            <label class="filter-label" for="actionHistorySearchInput">Tìm kiếm thời gian</label>
+            <div class="search-input-group">
+              <i class="fas fa-search"></i>
+              <input type="text" id="actionHistorySearchInput" placeholder="VD: 17/08/2026 hoặc 22:38:00 17/08/2026">
+              <button id="actionHistoryClearSearch" class="clear-btn" type="button" aria-label="Xóa tìm kiếm" style="display:none;"><i class="fas fa-times"></i></button>
+            </div>
           </div>
           <div class="history-filter-group">
-          <label class="filter-label" for="actionFilterState">Trạng thái</label>
-          <select id="actionFilterState" class="filter-select">
-            <option value="all">Tất cả</option>
-            <option value="on">ON</option>
-            <option value="off">OFF</option>
-          </select>
+            <label class="filter-label" for="actionFilterDevice">Thiết bị</label>
+            <select id="actionFilterDevice" class="filter-select">
+              <option value="all">Tất cả</option>
+              <option value="LED1">LED1</option>
+              <option value="LED2">LED2</option>
+              <option value="LED3">LED3</option>
+            </select>
           </div>
-          <button id="actionApplyFilters" class="filter-submit-btn" type="button"><i class="fas fa-search"></i>Lọc</button>
+          <div class="history-filter-group">
+            <label class="filter-label" for="actionFilterState">Trạng thái</label>
+            <select id="actionFilterState" class="filter-select">
+              <option value="all">Tất cả</option>
+              <option value="on">ON</option>
+              <option value="off">OFF</option>
+            </select>
+          </div>
+          <button id="actionApplyFilters" class="filter-submit-btn" type="button"><i class="fas fa-search"></i>Tìm kiếm</button>
           <button id="actionManualRefresh" class="refresh-btn icon-only" type="button" aria-label="Làm mới lịch sử" title="Làm mới lịch sử"><i class="fas fa-sync-alt"></i></button>
+          <button id="actionExportCSV" class="export-btn compact-export" type="button" title="Xuất CSV"><i class="fa-solid fa-file-export"></i>Xuất CSV</button>
         </div>
     `;
 
