@@ -1,5 +1,6 @@
 import SensorDataService from "../services/api.js";
 import HomePageChart from "../view/charts/home-page-chart.js";
+import { initializeDatePicker } from "../utils/date-picker.js";
 
 class HomePageChartController {
     constructor() {
@@ -39,11 +40,9 @@ class HomePageChartController {
         }
 
         if (this.datePicker) {
-            flatpickr(this.datePicker, {
-                dateFormat: "Y-m-d",
-                maxDate: formattedDate,
+            initializeDatePicker(this.datePicker, {
+                availableDates,
                 defaultDate: formattedDate,
-                enable: availableDates,
                 onChange: (selectedDates, dateStr) => {
                     if (selectedDates.length > 0) {
                         this.selectedDate = dateStr;

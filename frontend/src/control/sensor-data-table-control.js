@@ -1,6 +1,7 @@
 import SensorDataTable from "../view/table/sensor-data-table.js";
 import SensorDataService from "../services/api.js";
 import UpdateIndicator from "../components/update-indicator.js";
+import { initializeDateTimeSearchPicker } from "../utils/date-picker.js";
 
 class SensorDataTableController {
     constructor() {
@@ -49,6 +50,15 @@ class SensorDataTableController {
         const clearSearch = document.getElementById("clearSearch");
         const searchCriteria = document.getElementById("searchCriteria");
 
+        initializeDateTimeSearchPicker(searchInput, {
+            onChange: (_selectedDates, dateStr) => {
+                this.searchTerm = dateStr;
+                if (clearSearch) {
+                    clearSearch.style.display = dateStr ? "block" : "none";
+                }
+            },
+        });
+
         if (searchCriteria) {
             searchCriteria.addEventListener("change", (e) => {
                 this.sensorFilter = e.target.value || "all";
@@ -81,6 +91,7 @@ class SensorDataTableController {
         if (clearSearch) {
             clearSearch.addEventListener("click", () => {
                 if (searchInput) {
+                    searchInput._flatpickr?.clear();
                     searchInput.value = "";
                     this.searchTerm = "";
                     clearSearch.style.display = "none";

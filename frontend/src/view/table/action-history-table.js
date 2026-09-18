@@ -72,7 +72,7 @@ class ActionHistoryTable {
             <label class="filter-label" for="actionHistorySearchInput">Tìm kiếm thời gian</label>
             <div class="search-input-group">
               <i class="fas fa-search"></i>
-              <input type="text" id="actionHistorySearchInput" placeholder="VD: 17/08/2026 hoặc 22:38:00 17/08/2026">
+              <input type="text" id="actionHistorySearchInput" class="date-time-search" placeholder="Chọn ngày, giờ" aria-label="Chọn thời gian lịch sử thao tác" readonly>
               <button id="actionHistoryClearSearch" class="clear-btn" type="button" aria-label="Xóa tìm kiếm" style="display:none;"><i class="fas fa-times"></i></button>
             </div>
           </div>
@@ -184,7 +184,15 @@ class ActionHistoryTable {
         let ts = "";
         if (item.timestamp) {
             try {
-                ts = new Date(item.timestamp).toLocaleString("vi-VN");
+                const date = new Date(item.timestamp);
+                ts = date.toLocaleString("vi-VN", {
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                });
             } catch (e) {
                 ts = item.timestamp;
             }

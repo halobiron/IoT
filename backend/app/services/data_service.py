@@ -1,6 +1,5 @@
 from typing import Dict, Any
 from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor
 from app.core.database import DatabaseManager
 from app.services.mqtt_service import MQTTManager
 from app.core.logger_config import logger
@@ -12,7 +11,6 @@ class IoTMQTTReceiver:
     def __init__(self):
         self.db_manager = DatabaseManager()
         self.mqtt_manager = MQTTManager(message_callback=self.process_sensor_data, status_callback=self.process_action_status)
-        self._executor = ThreadPoolExecutor(max_workers=4)
 
     def process_sensor_data(self, sensor_data: Dict[str, Any]):
         try:

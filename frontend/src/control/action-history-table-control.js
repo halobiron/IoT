@@ -1,6 +1,7 @@
 import SensorDataService from "../services/api.js";
 import ActionHistoryTable from "../view/table/action-history-table.js";
 import UpdateIndicator from "../components/update-indicator.js";
+import { initializeDateTimeSearchPicker } from "../utils/date-picker.js";
 
 class ActionHistoryTableControl {
     constructor(container) {
@@ -316,8 +317,15 @@ class ActionHistoryTableControl {
 
         this._updateSearchPlaceholder("time");
 
+        initializeDateTimeSearchPicker(input, {
+            onChange: (_selectedDates, dateStr) => {
+                this.searchTerm = dateStr;
+                if (clearBtn) clearBtn.style.display = dateStr ? "block" : "none";
+            },
+        });
+
         if (this.searchTerm) {
-            input.value = this.searchTerm;
+            input._flatpickr?.setDate(this.searchTerm, false, "H:i d/m/Y");
             if (clearBtn) clearBtn.style.display = "block";
         }
 
@@ -356,7 +364,7 @@ class ActionHistoryTableControl {
 
         if (clearBtn) {
             clearBtn.addEventListener("click", async () => {
-                if (input) input.value = "";
+                if (input) input._flatpickr?.clear();
                 this.searchTerm = "";
                 clearBtn.style.display = "none";
                 this.currentPage = 1;

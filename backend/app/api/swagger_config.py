@@ -1,93 +1,138 @@
-from flask_restx import Api, fields
-from flask import Blueprint
+"""Swagger documentation for the Blueprint-based API.
 
-swagger_bp = Blueprint('swagger', __name__)
+The specification is separate from request handlers so it never creates a
+second, conflicting set of API routes.
+"""
 
-api = Api(
-    swagger_bp,
-    version='1.0',
-    title='IoT Monitoring System API',
-    description='API REST cho hệ thống giám sát IoT với các chức năng quản lý dữ liệu cảm biến, điều khiển LED, phân trang, sắp xếp và tìm kiếm dữ liệu',
-    doc='/docs/',
-    prefix='/api/v1'
-)
+from flask import jsonify
 
-sensors_ns = api.namespace('sensors', description='API quản lý dữ liệu cảm biến, điều khiển LED, phân trang, sắp xếp và tìm kiếm')
 
-sensor_data_model = api.model('SensorData', {
-    'temperature': fields.Float(required=True, description='Nhiệt độ (Celsius)', example=25.5),
-    'humidity': fields.Float(required=True, description='Độ ẩm (%)', example=60.2),
-    'light': fields.Float(required=True, description='Ánh sáng (%)', example=45.8),
-    'timestamp': fields.DateTime(description='Thời gian (ISO 8601)', example='2024-01-15T10:30:00+07:00')
-})
+def _query(name, description, schema_type="string", **options):
+    return {
+        "name": name,
+        "in": "query",
+        "description": description,
+        "schema": {"type": schema_type, **options},
+    }
 
-sensor_data_response_model = api.model('SensorDataResponse', {
-    'temperature': fields.Float(description='Nhiệt độ (Celsius)'),
-    'humidity': fields.Float(description='Độ ẩm (%)'),
-    'light': fields.Float(description='Ánh sáng (%)'),
-    'timestamp': fields.DateTime(description='Thời gian'),
-    '_id': fields.String(description='MongoDB ObjectId'),
-    'sensor_statuses': fields.Raw(description='Trạng thái các cảm biến'),
-    'overall_status': fields.Raw(description='Trạng thái tổng thể')
-})
 
-led_control_model = api.model('LEDControl', {
-    'led_id': fields.String(required=True, description='ID của LED', enum=['LED1', 'LED2', 'LED3'], example='LED1'),
-    'action': fields.String(required=True, description='Hành động', enum=['ON', 'OFF'], example='ON')
-})
+def _json_response(description="Successful response"):
+    return {
+        "description": description,
+        "content": {"application/json": {"schema": {"type": "object"}}},
+    }
 
-led_status_model = api.model('LEDStatus', {
-    'LED1': fields.String(description='Trạng thái LED1', enum=['ON', 'OFF']),
-    'LED2': fields.String(description='Trạng thái LED2', enum=['ON', 'OFF']),
-    'LED3': fields.String(description='Trạng thái LED3', enum=['ON', 'OFF']),
-})
 
-action_history_model = api.model('ActionHistory', {
-    'type': fields.String(description='Loại hành động'),
-    'led': fields.String(description='ID LED'),
-    'state': fields.String(description='Trạng thái'),
-    'timestamp': fields.DateTime(description='Thời gian'),
-    '_id': fields.String(description='MongoDB ObjectId')
-})
+def _get(summary, parameters=None):
+    operation = {"tags": ["Sensors"], "summary": summary, "responses": {"200": _json_response()}}
+    if parameters:
+        operation["parameters"] = parameters
+    return {"get": operation}
 
-pagination_model = api.model('Pagination', {
-    'page': fields.Integer(description='Số trang hiện tại'),
-    'per_page': fields.Integer(description='Số bản ghi mỗi trang'),
-    'total_count': fields.Integer(description='Tổng số bản ghi'),
-    'total_pages': fields.Integer(description='Tổng số trang'),
-    'has_prev': fields.Boolean(description='Có trang trước'),
-    'has_next': fields.Boolean(description='Có trang sau')
-})
 
-sort_model = api.model('Sort', {
-    'field': fields.String(description='Trường sắp xếp'),
-    'order': fields.String(description='Thứ tự sắp xếp', enum=['asc', 'desc'])
-})
+def build_openapi_spec():
+    """Return an OpenAPI document matching the routes in ``app.api.routes``."""
+    paths = {
+        "/api/v1/sensors/sensor-data": _get("Get the latest sensor reading"),
+        "/api/v1/sensors/home-data": _get("Get current sensor and LED data"),
+        "/api/v1/sensors/led-status": _get("Get LED states and pending commands"),
+        "/api/v1/sensors/available-dates": _get("List dates containing sensor data"),
+        "/api/v1/sensors/available-led-dates": _get("List dates containing LED history"),
+        "/api/v1/sensors/sensor-data-list": _get(
+            "List sensor readings",
+            [_query("page", "Page number", "integer", minimum=1), _query("per_page", "Rows per page", "integer", minimum=1, maximum=100), _query("sort_field", "timestamp, temperature, humidity, or light"), _query("sort_order", "asc or desc"), _query("search", "Search value"), _query("search_criteria", "all, time, temperature, humidity, or light"), _query("sample", "Return every nth row", "integer", minimum=1)],
+        ),
+        "/api/v1/sensors/sensor-data/chart": _get(
+            "Get readings for a chart",
+            [_query("date", "Date in YYYY-MM-DD"), _query("limit", "Maximum readings, or all")],
+        ),
+        "/api/v1/sensors/action-history": _get(
+            "List LED action history",
+            [_query("page", "Page number", "integer", minimum=1), _query("per_page", "Rows per page", "integer", minimum=1, maximum=100), _query("search", "Search value"), _query("device_filter", "Device filter"), _query("state_filter", "ON, OFF, or all")],
+        ),
+        "/api/v1/sensors/led-stats": _get(
+            "Get LED usage statistics",
+            [_query("cache", "Use cached results", "boolean"), _query("date", "Date in YYYY-MM-DD")],
+        ),
+        "/api/v1/sensors/thresholds": {
+            **_get("Get sensor thresholds"),
+            "post": {
+                "tags": ["Sensors"],
+                "summary": "Update sensor thresholds",
+                "requestBody": {
+                    "required": True,
+                    "content": {"application/json": {"schema": {"type": "object"}}},
+                },
+                "responses": {"200": _json_response(), "400": _json_response("Invalid threshold values")},
+            },
+        },
+        "/api/v1/sensors/led-control": {
+            "post": {
+                "tags": ["Sensors"],
+                "summary": "Send an LED command",
+                "requestBody": {
+                    "required": True,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["led_id", "action"],
+                                "properties": {
+                                    "led_id": {"type": "string", "enum": ["LED1", "LED2", "LED3", "ALL"]},
+                                    "action": {"type": "string", "enum": ["ON", "OFF"]},
+                                },
+                            }
+                        }
+                    },
+                },
+                "responses": {"200": _json_response(), "400": _json_response("Invalid command"), "500": _json_response("MQTT error")},
+            }
+        },
+        "/api/v1/auth/login": {
+            "post": {
+                "tags": ["Authentication"],
+                "summary": "Log in and receive a JWT",
+                "requestBody": {
+                    "required": True,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["username", "password"],
+                                "properties": {
+                                    "username": {"type": "string"},
+                                    "password": {"type": "string", "format": "password"},
+                                },
+                            }
+                        }
+                    },
+                },
+                "responses": {"200": _json_response(), "401": _json_response("Invalid credentials")},
+            }
+        },
+    }
 
-search_model = api.model('Search', {
-    'term': fields.String(description='Từ khóa tìm kiếm'),
-    'criteria': fields.String(description='Tiêu chí tìm kiếm')
-})
+    return {
+        "openapi": "3.0.3",
+        "info": {"title": "IoT Monitoring System API", "version": "1.0.0", "description": "REST API for sensor monitoring and LED control."},
+        "servers": [{"url": "/", "description": "Current server"}],
+        "tags": [{"name": "Sensors"}, {"name": "Authentication"}],
+        "paths": paths,
+    }
 
-success_response_model = api.model('SuccessResponse', {
-    'status': fields.String(description='Trạng thái', example='success'),
-    'data': fields.Raw(description='Dữ liệu trả về'),
-    'pagination': fields.Nested(pagination_model, description='Thông tin phân trang'),
-    'sort': fields.Nested(sort_model, description='Thông tin sắp xếp'),
-    'search': fields.Nested(search_model, description='Thông tin tìm kiếm'),
-    'count': fields.Integer(description='Số bản ghi trong response'),
-    'total_count': fields.Integer(description='Tổng số bản ghi')
-})
 
-error_response_model = api.model('ErrorResponse', {
-    'status': fields.String(description='Trạng thái', example='error'),
-    'message': fields.String(description='Thông báo lỗi'),
-    'data': fields.List(fields.Raw, description='Dữ liệu lỗi')
-})
+def register_swagger_docs(app):
+    """Expose an OpenAPI document and a Swagger UI without duplicate API routes."""
 
-chart_data_model = api.model('ChartData', {
-    'timestamp': fields.DateTime(description='Thời gian'),
-    'temperature': fields.Float(description='Nhiệt độ'),
-    'humidity': fields.Float(description='Độ ẩm'),
-    'light': fields.Float(description='Ánh sáng')
-})
+    @app.get("/docs/openapi.json")
+    def openapi_spec():
+        return jsonify(build_openapi_spec())
+
+    @app.get("/docs/")
+    def swagger_ui():
+        return """<!doctype html><html><head><title>IoT API documentation</title>
+<link rel=\"stylesheet\" href=\"https://unpkg.com/swagger-ui-dist@5/swagger-ui.css\"></head>
+<body><div id=\"swagger-ui\"></div>
+<script src=\"https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js\"></script>
+<script>SwaggerUIBundle({url: '/docs/openapi.json', dom_id: '#swagger-ui'});</script>
+</body></html>"""

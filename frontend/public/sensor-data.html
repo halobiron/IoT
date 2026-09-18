@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="../src/styles/main.css">
     <link rel="stylesheet" href="../src/styles/pages.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 </head>
 
 <body class="history-table-layout">
@@ -58,12 +59,13 @@
                                 <div class="search-section">
                                     <div class="history-filter-group">
                                         <label class="filter-label" for="tableSearchInput">Tìm kiếm thời gian</label>
-                                        <div class="search-input-group plain-search-input">
-                                        <input type="text" id="tableSearchInput"
-                                            placeholder="VD: 08:45:20 17/08/2026">
-                                        <button id="clearSearch" class="clear-btn" style="display: none;">
-                                            <i class="fas fa-times"></i>
-                                        </button>
+                                        <div class="search-input-group">
+                                            <i class="fas fa-search"></i>
+                                            <input type="text" id="tableSearchInput" class="date-time-search"
+                                                placeholder="Chọn ngày, giờ" aria-label="Chọn thời gian dữ liệu cảm biến" readonly>
+                                            <button id="clearSearch" class="clear-btn" type="button" aria-label="Xóa tìm kiếm" style="display: none;">
+                                                <i class="fas fa-times"></i>
+                                            </button>
                                         </div>
                                     </div>
                                     <div class="history-filter-group">
@@ -132,6 +134,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script type="module" src="../src/pages/sensor-data-loader.js"></script>
     <script src="../src/control/profile-control.js"></script>
 </body>
