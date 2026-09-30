@@ -65,10 +65,13 @@ class HomePageChart {
         const labels = sortedData.map((item) => {
             const date = new Date(item.timestamp);
             return date.toLocaleString("vi-VN", {
-                month: "2-digit",
-                day: "2-digit",
                 hour: "2-digit",
                 minute: "2-digit",
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+                hourCycle: "h23",
+                timeZone: "Asia/Ho_Chi_Minh",
             });
         });
 

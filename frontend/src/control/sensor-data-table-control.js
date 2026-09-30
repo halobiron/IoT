@@ -11,11 +11,12 @@ class SensorDataTableController {
 
         this.currentPage = 1;
         this.itemsPerPage = 10;
-        this.searchTerm = "";
+        this.valueSearchTerm = "";
         this.searchCriteria = "all";
         this.sensorFilter = "all";
         this.sortField = "timestamp";
         this.sortOrder = "desc";
+        this.requestSequence = 0;
 
         this.init();
     }
@@ -46,62 +47,73 @@ class SensorDataTableController {
             });
         }
 
-        const searchInput = document.getElementById("tableSearchInput");
-        const clearSearch = document.getElementById("clearSearch");
+        const valueSearchInput = document.getElementById("sensorValueSearchInput");
+        const timeSearchInput = document.getElementById("sensorTimeSearchInput");
+        const valueSearchGroup = document.getElementById("sensorValueSearchGroup");
+        const clearValueSearch = document.getElementById("clearValueSearch");
         const searchCriteria = document.getElementById("searchCriteria");
 
-        initializeDateTimeSearchPicker(searchInput, {
-            onChange: (_selectedDates, dateStr) => {
-                this.searchTerm = dateStr;
-                if (clearSearch) {
-                    clearSearch.style.display = dateStr ? "block" : "none";
-                }
-            },
-        });
+        this.timeSearchInput = timeSearchInput;
 
+        this.configureValueSearch(
+            this.searchCriteria,
+            valueSearchGroup,
+            valueSearchInput,
+            timeSearchInput,
+            clearValueSearch
+        );
+        if (timeSearchInput) {
+            initializeDateTimeSearchPicker(timeSearchInput, {
+                onChange: (_selectedDates, dateStr) => {
+                    this.valueSearchTerm = dateStr;
+                    if (clearValueSearch) {
+                        clearValueSearch.style.display = dateStr ? "block" : "none";
+                    }
+                },
+            });
+        }
         if (searchCriteria) {
             searchCriteria.addEventListener("change", (e) => {
-                this.sensorFilter = e.target.value || "all";
-                this.table.setSensorFilter(this.sensorFilter);
+                this.searchCriteria = e.target.value || "all";
+                this.configureValueSearch(
+                    this.searchCriteria,
+                    valueSearchGroup,
+                    valueSearchInput,
+                    timeSearchInput,
+                    clearValueSearch
+                );
             });
         }
 
-        if (searchInput) {
-            searchInput.addEventListener("input", (e) => {
-                const newSearchTerm = e.target.value.trim();
-                this.searchTerm = newSearchTerm;
+        if (valueSearchInput) {
+            valueSearchInput.addEventListener("input", (e) => {
+                this.valueSearchTerm = e.target.value.trim();
 
-                if (clearSearch) {
-                    clearSearch.style.display = this.searchTerm
+                if (clearValueSearch) {
+                    clearValueSearch.style.display = this.valueSearchTerm
                         ? "block"
                         : "none";
                 }
             });
 
-            searchInput.addEventListener("keydown", (e) => {
+            valueSearchInput.addEventListener("keydown", (e) => {
                 if (e.key === "Enter") {
                     e.preventDefault();
                     clearTimeout(this.searchTimeout);
-                    this.currentPage = 1;
-                    this.loadData();
+                    this.applyFilters();
                 }
             });
         }
 
-        if (clearSearch) {
-            clearSearch.addEventListener("click", () => {
-                if (searchInput) {
-                    searchInput._flatpickr?.clear();
-                    searchInput.value = "";
-                    this.searchTerm = "";
-                    clearSearch.style.display = "none";
-                    searchInput.focus();
+        if (clearValueSearch) {
+            clearValueSearch.addEventListener("click", () => {
+                if (valueSearchInput) {
+                    valueSearchInput.value = "";
+                    this.resetTimeFilter(timeSearchInput);
+                    this.valueSearchTerm = "";
+                    clearValueSearch.style.display = "none";
+                    valueSearchInput.focus();
                 }
-                if (searchCriteria) searchCriteria.value = "all";
-                this.sensorFilter = "all";
-                this.table.setSensorFilter("all");
-                this.currentPage = 1;
-                this.loadData();
             });
         }
 
@@ -122,8 +134,7 @@ class SensorDataTableController {
         const applyFilters = document.getElementById("applySensorFilters");
         if (applyFilters) {
             applyFilters.addEventListener("click", () => {
-                this.currentPage = 1;
-                this.loadData();
+                this.applyFilters();
             });
         }
 
@@ -168,18 +179,70 @@ class SensorDataTableController {
     }
 
     updateSearchPlaceholder(criteria) {
-        const searchInput = document.getElementById("tableSearchInput");
+        const searchInput = document.getElementById("sensorValueSearchInput");
         if (!searchInput) return;
 
         const placeholders = {
-            all: "Tìm kiếm dữ liệu (VD: 32.5, 00:17:07 21/09/2025)",
             temperature: "Tìm kiếm theo nhiệt độ (VD: 32.5 hoặc 32)",
             light: "Tìm kiếm theo ánh sáng (VD: 75.2 hoặc 75)",
             humidity: "Tìm kiếm theo độ ẩm (VD: 60.8 hoặc 60)",
-            time: "Tìm kiếm theo thời gian (VD: 00:17:07 21/09/2025, 00:17 21/09/2025, 21/09/2025)",
+            time: "Tìm kiếm theo thời gian (VD: 14:30 23/09/2026)",
         };
 
-        searchInput.placeholder = placeholders[criteria] || placeholders.all;
+        searchInput.placeholder = placeholders[criteria] || "Tìm kiếm giá trị cảm biến";
+    }
+
+    configureValueSearch(
+        criteria,
+        valueSearchGroup,
+        valueSearchInput,
+        timeSearchInput,
+        clearValueSearch
+    ) {
+        if (valueSearchGroup) valueSearchGroup.hidden = false;
+        this.updateSearchPlaceholder(criteria);
+
+        if (!valueSearchInput) return;
+
+        const isTimeFilter = criteria === "time";
+        const isSwitchingTimeMode = this.valueSearchCriteria
+            && (this.valueSearchCriteria === "time") !== isTimeFilter;
+
+        if (isSwitchingTimeMode) {
+            valueSearchInput.value = "";
+            this.resetTimeFilter(timeSearchInput);
+            this.valueSearchTerm = "";
+            if (clearValueSearch) clearValueSearch.style.display = "none";
+        }
+
+        valueSearchInput.hidden = isTimeFilter;
+        if (timeSearchInput) {
+            timeSearchInput.hidden = !isTimeFilter;
+            if (!isTimeFilter) this.resetTimeFilter(timeSearchInput);
+        }
+
+        const valueSearchLabel = document.getElementById("sensorValueSearchLabel");
+        if (valueSearchLabel) {
+            valueSearchLabel.textContent = isTimeFilter
+                ? "Mốc thời gian"
+                : "Tìm kiếm giá trị";
+        }
+
+        valueSearchInput.inputMode = ["temperature", "humidity", "light"].includes(criteria)
+            ? "decimal"
+            : "text";
+        this.valueSearchCriteria = criteria;
+    }
+
+    resetTimeFilter(timeSearchInput) {
+        if (!timeSearchInput) return;
+
+        const picker = timeSearchInput._flatpickr;
+        if (picker) {
+            picker.clear();
+            picker.close();
+        }
+        timeSearchInput.value = "";
     }
 
     isTimeFormat(searchTerm) {
@@ -213,22 +276,44 @@ class SensorDataTableController {
         this.loadData();
     }
 
+    applyFilters() {
+        if (this.searchCriteria === "time") {
+            this.valueSearchTerm = this.timeSearchInput?.value.trim() || "";
+            this.timeSearchInput?._flatpickr?.close();
+        }
+
+        this.sensorFilter = this.searchCriteria === "time"
+            ? "all"
+            : this.searchCriteria;
+        this.table.sensorFilter = this.sensorFilter;
+        this.currentPage = 1;
+        this.loadData();
+    }
+
     async loadData(showLoading = true) {
+        const requestId = ++this.requestSequence;
+
         try {
             if (showLoading) {
                 this.table.showLoading();
             }
 
+            const isTimeFilter = Boolean(
+                this.searchCriteria === "time" && this.valueSearchTerm
+            );
             const crudParams = {
                 page: this.currentPage,
                 per_page: this.itemsPerPage,
                 sort_field: this.sortField,
                 sort_order: this.sortOrder,
-                search: this.searchTerm,
-                search_criteria: this.searchTerm ? "time" : "all",
+                search: isTimeFilter ? "" : this.valueSearchTerm,
+                search_criteria: isTimeFilter
+                    ? "all"
+                    : (this.valueSearchTerm ? this.searchCriteria : "all"),
+                end_time: isTimeFilter ? this.valueSearchTerm : "",
             };
 
-            const sampleRate = this.searchTerm ? 1 : 10;
+            const sampleRate = this.valueSearchTerm ? 1 : 10;
 
             const response = await SensorDataService.getSensorDataList(
                 "all",
@@ -236,8 +321,10 @@ class SensorDataTableController {
                 crudParams
             );
 
+            if (requestId !== this.requestSequence) return;
+
             console.log("API Response:", response);
-            console.log("Search term:", this.searchTerm);
+            console.log("Value search term:", this.valueSearchTerm);
             console.log("Search criteria:", this.searchCriteria);
 
             if (response.status === "success" && response.data) {
@@ -254,10 +341,11 @@ class SensorDataTableController {
                 this.table.renderTable([]);
             }
         } catch (error) {
+            if (requestId !== this.requestSequence) return;
             console.error("Lỗi khi tải dữ liệu bảng:", error);
             this.table.renderTable([]);
         } finally {
-            if (showLoading) {
+            if (showLoading && requestId === this.requestSequence) {
                 this.table.hideLoading();
             }
         }
@@ -270,6 +358,7 @@ class SensorDataTableController {
         }
 
         try {
+            await SensorDataService.getLatestSensorData();
             await this.loadData(false);
             this.updateIndicator.show();
             console.log("Dữ liệu đã được làm mới thủ công");
@@ -287,7 +376,7 @@ class SensorDataTableController {
         try {
             if (
                 this.currentPage === 1 &&
-                !this.searchTerm &&
+                !this.valueSearchTerm &&
                 this.searchCriteria === "all"
             ) {
                 const crudParams = {
@@ -312,7 +401,7 @@ class SensorDataTableController {
                         JSON.stringify(response.data)
                     ) {
                         this.updateIndicator.show();
-                        if (!this.searchTerm && this.searchCriteria === "all") {
+                        if (!this.valueSearchTerm && this.searchCriteria === "all") {
                             this.loadData(false);
                         }
                     }

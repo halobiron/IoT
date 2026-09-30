@@ -590,10 +590,13 @@ class DatabaseManager:
         try:
             query = {}
 
-            if 'start_time' in criteria and 'end_time' in criteria:
-                start_utc = convert_from_vietnam_time(criteria['start_time'])
-                end_utc = convert_from_vietnam_time(criteria['end_time'])
-                query['timestamp'] = {"$gte": start_utc, "$lte": end_utc}
+            if 'start_time' in criteria or 'end_time' in criteria:
+                time_query = {}
+                if 'start_time' in criteria:
+                    time_query["$gte"] = convert_from_vietnam_time(criteria['start_time'])
+                if 'end_time' in criteria:
+                    time_query["$lte"] = convert_from_vietnam_time(criteria['end_time'])
+                query['timestamp'] = time_query
 
             if 'temperature_min' in criteria or 'temperature_max' in criteria:
                 temp_query = {}
@@ -732,8 +735,9 @@ class DatabaseManager:
             return {'data': [], 'pagination': {'page': 1, 'per_page': per_page, 'total_count': 0, 'total_pages': 1, 'has_prev': False, 'has_next': False}}
 
     def search_action_history(self, search_term: str = '', device_filter: str = 'all',
-                              state_filter: str = 'all', sort_field: str = 'timestamp',
-                              sort_order: str = 'desc', page: int = 1, per_page: int = 10) -> Dict[str, Any]:
+                              action_filter: str = 'all', state_filter: str = 'all', sort_field: str = 'timestamp',
+                              sort_order: str = 'desc', page: int = 1, per_page: int = 10,
+                              end_time: Optional[datetime] = None) -> Dict[str, Any]:
         try:
             action_collection = self.db.get_collection('action_history')
             query = {}
@@ -741,11 +745,27 @@ class DatabaseManager:
             if device_filter and device_filter != 'all':
                 query['led'] = {'$regex': f'^{device_filter}$', '$options': 'i'}
 
+            if action_filter and action_filter.lower() != 'all':
+                action_state_values = {
+                    'on': ['ON', 'on', '1', 'true', 'TRUE'],
+                    'off': ['OFF', 'off', '0', 'false', 'FALSE']
+                }.get(action_filter.lower())
+                if action_state_values:
+                    # Older records only store ``state``; newer records may also
+                    # store commands such as ``LED1_ON`` in ``action``.
+                    query['$or'] = [
+                        {'state': {'$in': action_state_values}},
+                        {'action': {'$regex': f'_{action_filter}$', '$options': 'i'}}
+                    ]
+
             if state_filter and state_filter != 'all':
                 if state_filter.lower() == 'on':
                     query['state'] = {'$in': ['ON', 'on', '1', 'true', 'TRUE']}
                 elif state_filter.lower() == 'off':
                     query['state'] = {'$in': ['OFF', 'off', '0', 'false', 'FALSE']}
+
+            if end_time:
+                query['timestamp'] = {'$lte': convert_from_vietnam_time(end_time)}
 
             if search_term:
                 import re
@@ -852,8 +872,10 @@ class DatabaseManager:
                 },
                 'filters': {
                     'device': device_filter,
+                    'action': action_filter,
                     'state': state_filter,
-                    'search': search_term
+                    'search': search_term,
+                    'end_time': end_time.isoformat() if end_time else ''
                 },
                 'sort': {
                     'field': sort_field,

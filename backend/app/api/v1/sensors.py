@@ -33,6 +33,7 @@ def sensor_data_list():
 
         search_term = request.args.get('search', '')
         search_criteria = request.args.get('search_criteria', 'all')
+        end_time_term = request.args.get('end_time', '')
 
         limit_arg = request.args.get('limit', None)
         if isinstance(limit_arg, str) and limit_arg.lower() == 'all':
@@ -55,9 +56,9 @@ def sensor_data_list():
         query_filter = {}
 
         logger.info(f"Sensor data list query filter: {query_filter}")
-        logger.info(f"CRUD params - page: {page}, per_page: {per_page}, sort: {sort_field}:{sort_order}, search: '{search_term}' ({search_criteria})")
+        logger.info(f"CRUD params - page: {page}, per_page: {per_page}, sort: {sort_field}:{sort_order}, search: '{search_term}' ({search_criteria}), end_time: '{end_time_term}'")
 
-        if search_term:
+        if search_term or end_time_term:
             import re
             time_patterns = [
                 r'^(\d{1,2}):(\d{1,2}):(\d{1,2})\s+(\d{1,2})/(\d{1,2})/(\d{4})$',
@@ -69,8 +70,13 @@ def sensor_data_list():
 
             is_time_search = any(re.match(pattern, search_term) for pattern in time_patterns)
 
-            if is_time_search or search_criteria == 'time':
-                data = db.search_by_time_string(search_term)
+            if search_criteria == 'time':
+                try:
+                    selected_time = datetime.strptime(search_term, '%H:%M %d/%m/%Y')
+                    end_time = create_vietnam_datetime(selected_time.year, selected_time.month, selected_time.day, selected_time.hour, selected_time.minute, 59, 999999)
+                    data = db.search_by_multiple_criteria({'end_time': end_time})
+                except ValueError:
+                    data = []
 
                 if sample and sample > 1:
                     data = data[::sample]
@@ -116,8 +122,19 @@ def sensor_data_list():
             else:
                 criteria = {}
 
+                if end_time_term:
+                    try:
+                        selected_time = datetime.strptime(end_time_term, '%H:%M %d/%m/%Y')
+                        criteria['end_time'] = create_vietnam_datetime(
+                            selected_time.year, selected_time.month, selected_time.day,
+                            selected_time.hour, selected_time.minute, 59, 999999
+                        )
+                    except ValueError:
+                        return jsonify({"status": "error", "message": "Mốc thời gian không hợp lệ"}), 400
+
                 if search_criteria == 'all':
-                    criteria['text_search'] = search_term
+                    if search_term:
+                        criteria['text_search'] = search_term
                 elif search_criteria == 'time':
                     data = db.search_by_time_string(search_term)
 
@@ -566,7 +583,9 @@ def action_history():
             sort_field = 'timestamp'
 
         search_term = request.args.get('search', '')
+        end_time_term = request.args.get('end_time', '')
         device_filter = request.args.get('device_filter', 'all')
+        action_filter = request.args.get('action_filter', 'all')
         state_filter = request.args.get('state_filter', 'all')
 
         limit = int(request.args.get('limit', 0))
@@ -574,12 +593,25 @@ def action_history():
             per_page = limit
 
         logger.info(
-            f"Action history CRUD params - page: {page}, per_page: {per_page}, sort: {sort_field}:{sort_order}, search: '{search_term}', device: {device_filter}, state: {state_filter}")
+            f"Action history CRUD params - page: {page}, per_page: {per_page}, sort: {sort_field}:{sort_order}, search: '{search_term}', end_time: '{end_time_term}', device: {device_filter}, action: {action_filter}, state: {state_filter}")
+
+        end_time = None
+        if end_time_term:
+            try:
+                selected_time = datetime.strptime(end_time_term, '%H:%M %d/%m/%Y')
+                end_time = create_vietnam_datetime(
+                    selected_time.year, selected_time.month, selected_time.day,
+                    selected_time.hour, selected_time.minute, 59, 999999
+                )
+            except ValueError:
+                return jsonify({"status": "error", "message": "Mốc thời gian không hợp lệ", "data": []}), 400
 
         result = db.search_action_history(
             search_term=search_term,
             device_filter=device_filter,
+            action_filter=action_filter,
             state_filter=state_filter,
+            end_time=end_time,
             sort_field=sort_field,
             sort_order=sort_order,
             page=page,

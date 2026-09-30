@@ -1,14 +1,11 @@
 import mockDataService from "./mock-data.js";
 
 const API_BASE_URL = "http://localhost:5000/api/v1/sensors";
-
-// Đặt USE_MOCK_DATA = true để hiển thị đầy đủ số liệu giả lập khi chưa kết nối phần cứng / ESP32
-// Đặt USE_MOCK_DATA = false khi đã sẵn sàng kết nối Backend & Database thật
-const USE_MOCK_DATA = false;
+const USE_MOCK_DATA = true;
 
 if (USE_MOCK_DATA) {
     console.log(
-        "%c[IoT System] Đang bật chế độ Mock Data (Demo Mode) - Số liệu hiển thị sẵn sàng cho Figma & Báo cáo",
+        "%c[IoT System] Đang bật chế độ Mock Data (Demo Mode)",
         "background: #007aff; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;"
     );
 }
@@ -52,6 +49,8 @@ class SensorDataService {
                 url += `&search=${encodeURIComponent(crudParams.search)}`;
             if (crudParams.search_criteria)
                 url += `&search_criteria=${crudParams.search_criteria}`;
+            if (crudParams.end_time)
+                url += `&end_time=${encodeURIComponent(crudParams.end_time)}`;
 
             const response = await fetch(url);
             if (!response.ok) {
@@ -191,8 +190,12 @@ class SensorDataService {
                 url += `&sort_order=${crudParams.sort_order}`;
             if (crudParams.search)
                 url += `&search=${encodeURIComponent(crudParams.search)}`;
+            if (crudParams.end_time)
+                url += `&end_time=${encodeURIComponent(crudParams.end_time)}`;
             if (crudParams.device_filter)
                 url += `&device_filter=${crudParams.device_filter}`;
+            if (crudParams.action_filter)
+                url += `&action_filter=${crudParams.action_filter}`;
             if (crudParams.state_filter)
                 url += `&state_filter=${crudParams.state_filter}`;
 

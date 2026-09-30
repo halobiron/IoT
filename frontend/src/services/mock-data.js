@@ -20,22 +20,16 @@ class MockDataService {
 
         this.thresholds = {
             temperature: {
-                min: 15,
-                max: 36,
-                warning_low: 18,
-                warning_high: 32,
+                warning: 35,
+                danger: 40,
             },
             humidity: {
-                min: 40,
-                max: 85,
-                warning_low: 45,
-                warning_high: 80,
+                warning: 70,
+                danger: 85,
             },
             light: {
-                min: 10,
-                max: 95,
-                warning_low: 20,
-                warning_high: 85,
+                warning: 60,
+                danger: 80,
             },
         };
 
@@ -65,7 +59,6 @@ class MockDataService {
 
         for (let i = count - 1; i >= 0; i--) {
             const time = new Date(now - i * interval);
-            // Thêm dao động mượt mà
             const wave = Math.sin(i / 8) * 1.5;
             const jitterTemp = (Math.random() - 0.5) * 0.4;
             const jitterHum = (Math.random() - 0.5) * 0.8;
@@ -102,6 +95,7 @@ class MockDataService {
                 timestamp: time.toISOString(),
                 led: dev,
                 state: state,
+                user: "admin",
                 status: "success",
                 response_time: `${(0.4 + ((i * 17) % 31) / 10).toFixed(1)}s`,
             });
@@ -154,35 +148,15 @@ class MockDataService {
             this.sensorHistory.shift();
         }
 
-        const getStatus = (val, min, max, warnLow, warnHigh) => {
-            if (val > max || val < min) return { status: "Nguy hiểm", color_class: "status-danger" };
-            if (val > warnHigh || val < warnLow) return { status: "Cảnh báo", color_class: "status-warning" };
+        const getStatus = (val, thresholds) => {
+            if (val >= thresholds.danger) return { status: "Nguy hiểm", color_class: "status-danger" };
+            if (val >= thresholds.warning) return { status: "Cảnh báo", color_class: "status-warning" };
             return { status: "Bình thường", color_class: "status-normal" };
         };
 
-        const tempStatus = getStatus(
-            this.currentTemp,
-            this.thresholds.temperature.min,
-            this.thresholds.temperature.max,
-            this.thresholds.temperature.warning_low,
-            this.thresholds.temperature.warning_high
-        );
-
-        const humStatus = getStatus(
-            this.currentHum,
-            this.thresholds.humidity.min,
-            this.thresholds.humidity.max,
-            this.thresholds.humidity.warning_low,
-            this.thresholds.humidity.warning_high
-        );
-
-        const lightStatus = getStatus(
-            this.currentLight,
-            this.thresholds.light.min,
-            this.thresholds.light.max,
-            this.thresholds.light.warning_low,
-            this.thresholds.light.warning_high
-        );
+        const tempStatus = getStatus(this.currentTemp, this.thresholds.temperature);
+        const humStatus = getStatus(this.currentHum, this.thresholds.humidity);
+        const lightStatus = getStatus(this.currentLight, this.thresholds.light);
 
         return {
             _id: newRecord._id,
@@ -252,6 +226,7 @@ class MockDataService {
         const sortOrder = crudParams.sort_order || "desc";
         const search = (crudParams.search || "").toLowerCase().trim();
         const searchCriteria = crudParams.search_criteria || "all";
+        const endTimeSearch = crudParams.end_time || "";
 
         let filtered = [...this.sensorHistory];
 
@@ -264,7 +239,11 @@ class MockDataService {
                 } else if (searchCriteria === "light") {
                     return item.light.toString().includes(search);
                 } else if (searchCriteria === "time") {
-                    return item.timestamp.toLowerCase().includes(search);
+                    const timeMatch = search.match(/^(\d{1,2}):(\d{2})\s+(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+                    if (!timeMatch) return false;
+                    const [, hour, minute, day, month, year] = timeMatch;
+                    const endTime = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), 59, 999);
+                    return !Number.isNaN(endTime.getTime()) && new Date(item.timestamp) <= endTime;
                 } else {
                     return (
                         item.temperature.toString().includes(search) ||
@@ -274,6 +253,17 @@ class MockDataService {
                     );
                 }
             });
+        }
+
+        if (endTimeSearch) {
+            const timeMatch = endTimeSearch.match(/^([0-2]?\d):([0-5]\d)\s+(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+            if (!timeMatch) {
+                filtered = [];
+            } else {
+                const [, hour, minute, day, month, year] = timeMatch;
+                const endTime = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), 59, 999);
+                filtered = filtered.filter((item) => new Date(item.timestamp) <= endTime);
+            }
         }
 
         filtered.sort((a, b) => {
@@ -335,24 +325,29 @@ class MockDataService {
 
     controlLED(ledId, action) {
         const act = action.toUpperCase();
-        this.ledStates[ledId] = act;
-        if (act === "ON") {
-            this.ledStatsCounts[ledId] = (this.ledStatsCounts[ledId] || 0) + 1;
-        }
+        const targetLEDs = ledId === "ALL" ? ["LED1", "LED2", "LED3"] : [ledId];
+        const timestamp = new Date().toISOString();
 
-        const newLog = {
-            _id: `mock_act_${Date.now()}`,
-            timestamp: new Date().toISOString(),
-            led: ledId,
-            state: act,
-            status: "success",
-            response_time: `${(0.4 + ((Date.now() % 31) / 10)).toFixed(1)}s`,
-        };
-        this.actionHistory.unshift(newLog);
+        targetLEDs.forEach((targetId, index) => {
+            this.ledStates[targetId] = act;
+            if (act === "ON") {
+                this.ledStatsCounts[targetId] = (this.ledStatsCounts[targetId] || 0) + 1;
+            }
+
+            this.actionHistory.unshift({
+                _id: `mock_act_${Date.now()}_${index}`,
+                timestamp,
+                led: targetId,
+                state: act,
+                user: "admin",
+                status: "success",
+                response_time: `${(0.4 + ((Date.now() % 31) / 10)).toFixed(1)}s`,
+            });
+        });
 
         return {
             status: "success",
-            message: `LED ${ledId} đã được ${act}`,
+            message: ledId === "ALL" ? `Tất cả đèn đã được ${act}` : `LED ${ledId} đã được ${act}`,
             data: {
                 led_id: ledId,
                 action: act,
@@ -380,13 +375,19 @@ class MockDataService {
         const sortField = crudParams.sort_field || "timestamp";
         const sortOrder = crudParams.sort_order || "desc";
         const search = (crudParams.search || "").toLowerCase().trim();
+        const endTime = (crudParams.end_time || "").trim();
         const deviceFilter = crudParams.device_filter || "all";
+        const actionFilter = (crudParams.action_filter || "all").toUpperCase();
         const stateFilter = (crudParams.state_filter || "all").toUpperCase();
 
         let filtered = [...this.actionHistory];
 
         if (deviceFilter && deviceFilter !== "all") {
             filtered = filtered.filter((item) => item.led.toUpperCase() === deviceFilter.toUpperCase());
+        }
+
+        if (actionFilter !== "ALL") {
+            filtered = filtered.filter((item) => item.state.toUpperCase() === actionFilter);
         }
 
         if (stateFilter && stateFilter !== "ALL") {
@@ -401,6 +402,18 @@ class MockDataService {
                     item.timestamp.toLowerCase().includes(search)
                 );
             });
+        }
+
+        if (endTime) {
+            const match = endTime.match(/^(\d{1,2}):(\d{2})\s+(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+            if (match) {
+                const [, hour, minute, day, month, year] = match;
+                const selectedTime = new Date(
+                    Number(year), Number(month) - 1, Number(day),
+                    Number(hour), Number(minute), 59, 999
+                ).getTime();
+                filtered = filtered.filter((item) => new Date(item.timestamp).getTime() <= selectedTime);
+            }
         }
 
         filtered.sort((a, b) => {
@@ -435,6 +448,7 @@ class MockDataService {
             },
             filters: {
                 device_filter: deviceFilter,
+                action_filter: actionFilter,
                 state_filter: stateFilter,
             },
             sort: {
@@ -455,7 +469,14 @@ class MockDataService {
 
     updateThresholds(newThresholds) {
         if (newThresholds) {
-            this.thresholds = { ...this.thresholds, ...newThresholds };
+            for (const sensor of ["temperature", "humidity", "light"]) {
+                if (newThresholds[sensor]) {
+                    this.thresholds[sensor] = {
+                        ...this.thresholds[sensor],
+                        ...newThresholds[sensor],
+                    };
+                }
+            }
         }
         return {
             status: "success",

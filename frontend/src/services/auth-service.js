@@ -12,7 +12,7 @@ const REMEMBER_KEY = 'iot_remember_username';
 const DEFAULT_ACCOUNTS = [
     {
         username: 'admin',
-        password: 'password123',
+        password: '123456',
         fullName: 'Trần Hải Long',
         studentId: 'B23DCCN510',
         email: 'tranhailong2407@gmail.com',
@@ -22,7 +22,7 @@ const DEFAULT_ACCOUNTS = [
     },
     {
         username: 'B23DCCN510',
-        password: 'password123',
+        password: '123456',
         fullName: 'Trần Hải Long',
         studentId: 'B23DCCN510',
         email: 'tranhailong2407@gmail.com',
@@ -32,7 +32,7 @@ const DEFAULT_ACCOUNTS = [
     },
     {
         username: 'demo',
-        password: 'password123',
+        password: '123456',
         fullName: 'Người dùng Thử nghiệm',
         studentId: 'B23DCCN000',
         email: 'demo@ptit.edu.vn',
@@ -70,7 +70,7 @@ class AuthService {
 
         // Thử gửi request tới Backend trước (nếu server đang online)
         try {
-            const response = await fetch(${API_AUTH_URL}/login, {
+            const response = await fetch(`${API_AUTH_URL}/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -104,7 +104,7 @@ class AuthService {
         );
 
         if (matchedAccount) {
-            if (matchedAccount.password === cleanPassword || cleanPassword === '123456' || cleanPassword === 'password123' || cleanPassword === 'admin123') {
+            if (matchedAccount.password === cleanPassword || cleanPassword === '123456' || cleanPassword === '123456' || cleanPassword === 'admin123') {
                 const token = 'mock-jwt-token-' + btoa(cleanUsername) + '-' + Date.now();
                 const { password, ...userProfile } = matchedAccount;
                 this.setSession(token, userProfile);
@@ -115,12 +115,12 @@ class AuthService {
         }
 
         // Cho phép đăng nhập chung với tài khoản hợp lệ định dạng sinh viên hoặc admin
-        if (cleanPassword === '123456' || cleanPassword === 'password123' || cleanPassword === 'admin' || cleanPassword === 'admin123') {
+        if (cleanPassword === '123456' || cleanPassword === '123456' || cleanPassword === 'admin' || cleanPassword === 'admin123') {
             const fallbackUser = {
                 username: cleanUsername,
                 fullName: 'Trần Hải Long',
                 studentId: cleanUsername.toUpperCase().startsWith('B') ? cleanUsername.toUpperCase() : 'B23DCCN510',
-                email: ${cleanUsername.toLowerCase()}@ptit.edu.vn,
+                email: `${cleanUsername.toLowerCase()}@ptit.edu.vn`,
                 role: 'Người dùng hệ thống',
                 department: 'Công nghệ thông tin',
                 avatarInitial: cleanUsername.charAt(0).toUpperCase()
@@ -132,7 +132,7 @@ class AuthService {
 
         return { 
             success: false, 
-            message: 'Tài khoản hoặc mật khẩu không đúng. Gợi ý: admin / password123' 
+            message: 'Tài khoản hoặc mật khẩu không đúng. Gợi ý: admin / 123456' 
         };
     }
 

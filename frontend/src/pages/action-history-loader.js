@@ -1,4 +1,4 @@
-import ActionHistoryTableControl from "../control/action-history-table-control.js";
+import ActionHistoryTableControl from "../control/action-history-table-control.js?v=action-user-v2";
 import LEDStatsPanelControl from "../control/led-stats-panel-control.js";
 
 class ActionHistoryLoader {

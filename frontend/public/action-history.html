@@ -35,6 +35,12 @@
                     <span>Thống kê</span>
                 </a>
             </nav>
+            <div class="sidebar-footer">
+                <button class="sidebar-logout-btn" type="button" data-action="logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Đăng xuất</span>
+                </button>
+            </div>
         </div>
 
         <div class="main-content">
@@ -59,12 +65,13 @@
 
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script type="module">
-        import ActionHistoryLoader from '../src/pages/action-history-loader.js';
+        import ActionHistoryLoader from '../src/pages/action-history-loader.js?v=action-user-v2';
 
         const loader = new ActionHistoryLoader('action-history-container');
         loader.load(100);
     </script>
     <script src="../src/control/profile-control.js"></script>
+    <script src="../src/control/logout-control.js"></script>
 </body>
 
 </html>

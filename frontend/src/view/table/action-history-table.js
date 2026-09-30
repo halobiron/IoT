@@ -38,6 +38,7 @@ class ActionHistoryTable {
         <th>Thiết bị</th>
         <th>Hành động</th>
         <th>Trạng thái</th>
+        <th>User</th>
         <th>Thời gian phản hồi</th>
         <th>Thời gian</th>
       </tr>
@@ -50,7 +51,7 @@ class ActionHistoryTable {
         if (this.currentItems.length === 0) {
             const tr = document.createElement("tr");
             tr.innerHTML = `
-                <td colspan="6" class="no-data">Không có dữ liệu để hiển thị</td>
+                <td colspan="7" class="no-data">Không có dữ liệu để hiển thị</td>
             `;
             tbody.appendChild(tr);
         } else {
@@ -86,6 +87,14 @@ class ActionHistoryTable {
             </select>
           </div>
           <div class="history-filter-group">
+            <label class="filter-label" for="actionFilterAction">Hành động</label>
+            <select id="actionFilterAction" class="filter-select" aria-label="Lọc theo hành động">
+              <option value="all">Tất cả</option>
+              <option value="on">Bật</option>
+              <option value="off">Tắt</option>
+            </select>
+          </div>
+          <div class="history-filter-group">
             <label class="filter-label" for="actionFilterState">Trạng thái</label>
             <select id="actionFilterState" class="filter-select">
               <option value="all">Tất cả</option>
@@ -95,7 +104,6 @@ class ActionHistoryTable {
           </div>
           <button id="actionApplyFilters" class="filter-submit-btn" type="button"><i class="fas fa-search"></i>Tìm kiếm</button>
           <button id="actionManualRefresh" class="refresh-btn icon-only" type="button" aria-label="Làm mới lịch sử" title="Làm mới lịch sử"><i class="fas fa-sync-alt"></i></button>
-          <button id="actionExportCSV" class="export-btn compact-export" type="button" title="Xuất CSV"><i class="fa-solid fa-file-export"></i>Xuất CSV</button>
         </div>
     `;
 
@@ -180,6 +188,9 @@ class ActionHistoryTable {
         const responseTimeTd = document.createElement("td");
         responseTimeTd.textContent = item.response_time || this._mockResponseTime(item);
 
+        const userTd = document.createElement("td");
+        userTd.textContent = item.user || item.username || item.operator || "Hệ thống";
+
         const tsTd = document.createElement("td");
         let ts = "";
         if (item.timestamp) {
@@ -203,6 +214,7 @@ class ActionHistoryTable {
         tr.appendChild(ledTd);
         tr.appendChild(actionTd);
         tr.appendChild(stateTd);
+        tr.appendChild(userTd);
         tr.appendChild(responseTimeTd);
         tr.appendChild(tsTd);
 

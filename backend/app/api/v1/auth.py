@@ -39,21 +39,21 @@ def verify_token(token):
 # Mock user database (trong production nên dùng MongoDB)
 MOCK_USERS = {
     'admin': {
-        'password_hash': hashlib.sha256('password123'.encode()).hexdigest(),
+        'password_hash': hashlib.sha256('123456'.encode()).hexdigest(),
         'full_name': 'Trần Hải Long',
         'student_id': 'B23DCCN510',
         'email': 'tranhailong2407@gmail.com',
         'role': 'Admin'
     },
     'B23DCCN510': {
-        'password_hash': hashlib.sha256('password123'.encode()).hexdigest(),
+        'password_hash': hashlib.sha256('123456'.encode()).hexdigest(),
         'full_name': 'Trần Hải Long',
         'student_id': 'B23DCCN510',
         'email': 'tranhailong2407@gmail.com',
         'role': 'Sinh viên'
     },
     'demo': {
-        'password_hash': hashlib.sha256('password123'.encode()).hexdigest(),
+        'password_hash': hashlib.sha256('123456'.encode()).hexdigest(),
         'full_name': 'Người dùng Thử nghiệm',
         'student_id': 'B23DCCN000',
         'email': 'demo@ptit.edu.vn',

@@ -1,5 +1,5 @@
 import SensorDataService from "../services/api.js";
-import ActionHistoryTable from "../view/table/action-history-table.js";
+import ActionHistoryTable from "../view/table/action-history-table.js?v=action-user-v1";
 import UpdateIndicator from "../components/update-indicator.js";
 import { initializeDateTimeSearchPicker } from "../utils/date-picker.js";
 
@@ -14,10 +14,12 @@ class ActionHistoryTableControl {
         this.itemsPerPage = 10;
         this.searchTerm = "";
         this.selectedDevice = "all";
+        this.selectedAction = "all";
         this.selectedState = "all";
         this.sortField = "timestamp";
         this.sortOrder = "desc";
         this.allDevices = new Set();
+        this.requestSequence = 0;
 
         this.searchListenersAttached = false;
         this.controlListenersAttached = false;
@@ -29,6 +31,8 @@ class ActionHistoryTableControl {
     }
 
     async load(limit = 50) {
+        const requestId = ++this.requestSequence;
+
         try {
             this.tableView.showLoading();
 
@@ -37,8 +41,11 @@ class ActionHistoryTableControl {
                 per_page: this.itemsPerPage,
                 sort_field: this.sortField,
                 sort_order: this.sortOrder,
-                search: this.searchTerm,
+                // A selected time is an upper bound, matching the sensor-data
+                // page: show all records up to and including that minute.
+                end_time: this.searchTerm,
                 device_filter: this.selectedDevice,
+                action_filter: this.selectedAction,
                 state_filter: this.selectedState,
             };
 
@@ -46,6 +53,8 @@ class ActionHistoryTableControl {
                 limit,
                 crudParams
             );
+
+            if (requestId !== this.requestSequence) return;
 
             this.tableView.hideLoading();
 
@@ -72,6 +81,7 @@ class ActionHistoryTableControl {
                 this.showError("Lỗi khi tải dữ liệu.");
             }
         } catch (err) {
+            if (requestId !== this.requestSequence) return;
             console.error("Lỗi khi lấy lịch sử hành động:", err);
             this.tableView.hideLoading();
             this.showError("Lỗi khi tải dữ liệu.");
@@ -84,6 +94,7 @@ class ActionHistoryTableControl {
                 this.currentPage === 1 &&
                 !this.searchTerm &&
                 this.selectedDevice === "all" &&
+                this.selectedAction === "all" &&
                 this.selectedState === "all"
             ) {
                 const crudParams = {
@@ -93,6 +104,7 @@ class ActionHistoryTableControl {
                     sort_order: this.sortOrder,
                     search: "",
                     device_filter: "all",
+                    action_filter: "all",
                     state_filter: "all",
                 };
 
@@ -308,6 +320,9 @@ class ActionHistoryTableControl {
         const deviceSelect = this.container.querySelector(
             "#actionFilterDevice"
         );
+        const actionSelect = this.container.querySelector(
+            "#actionFilterAction"
+        );
         const stateSelect = this.container.querySelector("#actionFilterState");
 
         if (!input) {
@@ -339,6 +354,7 @@ class ActionHistoryTableControl {
             if (e.key === "Enter") {
                 e.preventDefault();
                 clearTimeout(this.searchTimeout);
+                this.syncTimeSearch();
                 this.currentPage = 1;
                 this.load(this.itemsPerPage);
             }
@@ -348,6 +364,15 @@ class ActionHistoryTableControl {
             deviceSelect.value = this.selectedDevice || "all";
             deviceSelect.addEventListener("change", async (e) => {
                 this.selectedDevice = e.target.value || "all";
+                this.currentPage = 1;
+                await this.load(this.itemsPerPage);
+            });
+        }
+
+        if (actionSelect) {
+            actionSelect.value = this.selectedAction || "all";
+            actionSelect.addEventListener("change", async (e) => {
+                this.selectedAction = e.target.value || "all";
                 this.currentPage = 1;
                 await this.load(this.itemsPerPage);
             });
@@ -383,13 +408,13 @@ class ActionHistoryTableControl {
         const manualRefresh = this.container.querySelector(
             "#actionManualRefresh"
         );
-        const exportBtn = this.container.querySelector("#actionExportCSV");
         const prevBtn = this.container.querySelector("#actionPrevPage");
         const nextBtn = this.container.querySelector("#actionNextPage");
         const applyFilters = this.container.querySelector("#actionApplyFilters");
 
         if (applyFilters) {
             applyFilters.addEventListener("click", async () => {
+                this.syncTimeSearch();
                 this.currentPage = 1;
                 await this.load(this.itemsPerPage);
             });
@@ -426,12 +451,6 @@ class ActionHistoryTableControl {
             });
         }
 
-        if (exportBtn) {
-            exportBtn.addEventListener("click", () => {
-                this._exportCSV();
-            });
-        }
-
         if (prevBtn) {
             prevBtn.addEventListener("click", async () => {
                 await this.goToPage(this.currentPage - 1);
@@ -447,46 +466,12 @@ class ActionHistoryTableControl {
         this.controlListenersAttached = true;
     }
 
-    _exportCSV() {
-        const data = this.tableView.currentItems || [];
-        if (!data || data.length === 0) {
-            alert("Không có dữ liệu để xuất");
-            return;
-        }
+    syncTimeSearch() {
+        const input = this.container.querySelector("#actionHistorySearchInput");
+        if (!input) return;
 
-        const headers = ["Thiết bị", "Hành động", "Trạng thái", "Thời gian phản hồi", "Thời gian"];
-        const rows = data.map((item) => {
-            const timestamp = (() => {
-                try {
-                    return new Date(item.timestamp).toLocaleString("vi-VN");
-                } catch (e) {
-                    return item.timestamp || "";
-                }
-            })();
-            return [
-                `"${item.led || ""}"`,
-                `"${String(item.state || "").toUpperCase() === "ON" ? "Bật" : "Tắt"}"`,
-                `"${item.state || ""}"`,
-                `"${item.response_time || ""}"`,
-                `"${timestamp}"`,
-            ].join(",");
-        });
-
-        const csvContent = [headers.join(",")].concat(rows).join("\n");
-        const blob = new Blob([csvContent], {
-            type: "text/csv;charset=utf-8;",
-        });
-        const link = document.createElement("a");
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute(
-            "download",
-            `action-history-${new Date().toISOString().slice(0, 10)}.csv`
-        );
-        link.style.visibility = "hidden";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        this.searchTerm = input.value.trim();
+        input._flatpickr?.close();
     }
 
     startAutoRefresh(intervalMs = 30000, limit = 50) {

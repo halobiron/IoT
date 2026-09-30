@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dữ liệu cảm biến | Hệ thống Giám sát & Điều khiển IoT</title>
-    <link rel="stylesheet" href="../src/styles/main.css">
-    <link rel="stylesheet" href="../src/styles/pages.css">
+    <link rel="stylesheet" href="../src/styles/main.css?v=filter-time-v7">
+    <link rel="stylesheet" href="../src/styles/pages.css?v=filter-time-v7">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 </head>
@@ -36,6 +36,12 @@
                     <span>Thống kê</span>
                 </a>
             </nav>
+            <div class="sidebar-footer">
+                <button class="sidebar-logout-btn" type="button" data-action="logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Đăng xuất</span>
+                </button>
+            </div>
         </div>
 
         <div class="main-content">
@@ -58,24 +64,27 @@
                             <div class="table-search-controls">
                                 <div class="search-section">
                                     <div class="history-filter-group">
-                                        <label class="filter-label" for="tableSearchInput">Tìm kiếm thời gian</label>
-                                        <div class="search-input-group">
-                                            <i class="fas fa-search"></i>
-                                            <input type="text" id="tableSearchInput" class="date-time-search"
-                                                placeholder="Chọn ngày, giờ" aria-label="Chọn thời gian dữ liệu cảm biến" readonly>
-                                            <button id="clearSearch" class="clear-btn" type="button" aria-label="Xóa tìm kiếm" style="display: none;">
-                                                <i class="fas fa-times"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div class="history-filter-group">
-                                        <label class="filter-label" for="searchCriteria">Bộ lọc cảm biến</label>
+                                        <label class="filter-label" for="searchCriteria">Bộ lọc dữ liệu</label>
                                         <select id="searchCriteria" class="search-criteria-select">
                                             <option value="all">Tất cả</option>
                                             <option value="temperature">Nhiệt độ</option>
                                             <option value="light">Ánh sáng</option>
                                             <option value="humidity">Độ ẩm</option>
+                                            <option value="time">Thời gian</option>
                                         </select>
+                                    </div>
+                                    <div id="sensorValueSearchGroup" class="history-filter-group">
+                                        <label id="sensorValueSearchLabel" class="filter-label" for="sensorValueSearchInput">Tìm kiếm giá trị</label>
+                                        <div class="search-input-group">
+                                            <i class="fas fa-search"></i>
+                                            <input type="text" id="sensorValueSearchInput"
+                                                placeholder="Tìm kiếm giá trị cảm biến" aria-label="Tìm kiếm giá trị cảm biến">
+                                            <input type="text" id="sensorTimeSearchInput" class="date-time-search"
+                                                placeholder="Chọn mốc ngày, giờ" aria-label="Chọn mốc thời gian tối đa" readonly hidden>
+                                            <button id="clearValueSearch" class="clear-btn" type="button" aria-label="Xóa tìm kiếm giá trị" style="display: none;">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                     <button id="applySensorFilters" class="filter-submit-btn" type="button">
                                         <i class="fas fa-search"></i>
@@ -135,8 +144,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script type="module" src="../src/pages/sensor-data-loader.js"></script>
+    <script type="module" src="../src/pages/sensor-data-loader.js?v=filter-time-v7"></script>
     <script src="../src/control/profile-control.js"></script>
+    <script src="../src/control/logout-control.js"></script>
 </body>
 
 </html>

@@ -59,6 +59,10 @@
     min-width: 160px;
 }
 
+.history-table-layout .history-filter-group[hidden] {
+    display: none;
+}
+
 .history-table-layout .search-input-group {
     position: relative;
     width: 100%;
@@ -78,6 +82,10 @@
     height: 38px;
     min-height: 38px;
     box-sizing: border-box;
+}
+
+.history-table-layout .search-input-group input[hidden] {
+    display: none !important;
 }
 
 .history-table-layout .search-section > .search-input-group {

@@ -2,8 +2,8 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
-    const usernameInput = document.getElementById('usernameInput');
-    const passwordInput = document.getElementById('passwordInput');
+    const usernameInput = document.getElementById('usernameInput') || document.getElementById('username');
+    const passwordInput = document.getElementById('passwordInput') || document.getElementById('password');
     const rememberMeCheckbox = document.getElementById('rememberMe');
     const submitBtn = document.getElementById('submitBtn');
     const loginAlert = document.getElementById('loginAlert');
@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const remembered = AuthService.getRememberedUsername();
     if (remembered) {
         usernameInput.value = remembered;
-        rememberMeCheckbox.checked = true;
+        if (rememberMeCheckbox) rememberMeCheckbox.checked = true;
         passwordInput.focus();
     } else {
         usernameInput.focus();
@@ -112,10 +112,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Các hàm trợ giúp (Helper Functions)
     function showAlert(msg, type = 'error') {
-        if (!loginAlert || !alertMessage) return;
+        if (!loginAlert) return;
         
-        loginAlert.className = login-alert ;
-        alertMessage.textContent = msg;
+        loginAlert.className = `login-alert show login-alert-${type}`;
+        loginAlert.textContent = msg;
 
         if (alertIcon) {
             alertIcon.className = type === 'success' 

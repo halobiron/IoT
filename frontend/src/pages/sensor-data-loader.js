@@ -1,4 +1,4 @@
-import SensorDataTableController from "../control/sensor-data-table-control.js";
+import SensorDataTableController from "../control/sensor-data-table-control.js?v=filter-time-v7";
 
 class SensorDataPageLoader {
     constructor() {
