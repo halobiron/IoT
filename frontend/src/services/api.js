@@ -1,301 +1,84 @@
-import mockDataService from "./mock-data.js";
-
 const API_BASE_URL = "http://localhost:5000/api/v1/sensors";
-const USE_MOCK_DATA = true;
 
-if (USE_MOCK_DATA) {
-    console.log(
-        "%c[IoT System] Đang bật chế độ Mock Data (Demo Mode)",
-        "background: #007aff; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;"
-    );
+async function request(url, options) {
+    const response = await fetch(url, options);
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+}
+
+function queryString(params) {
+    return new URLSearchParams(
+        Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== "")
+    ).toString();
 }
 
 class SensorDataService {
-    static async getLatestSensorData() {
-        if (USE_MOCK_DATA) {
-            return mockDataService.getLatestSensorData();
-        }
-        try {
-            const response = await fetch(`${API_BASE_URL}/sensor-data`);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return await response.json();
-        } catch (error) {
-            console.warn("API lỗi, tự động chuyển sang Mock Data:", error);
-            return mockDataService.getLatestSensorData();
-        }
+    static getLatestSensorData() {
+        return request(`${API_BASE_URL}/sensor-data`);
     }
 
-    static async getSensorDataList(limit = 5, sample = 20, crudParams = {}) {
-        if (USE_MOCK_DATA) {
-            return mockDataService.getSensorDataList(limit, sample, crudParams);
-        }
-        try {
-            const limitParam =
-                typeof limit === "string" && limit.toLowerCase() === "all"
-                    ? "all"
-                    : Number(limit);
-
-            let url = `${API_BASE_URL}/sensor-data-list?limit=${limitParam}&sample=${sample}`;
-
-            if (crudParams.page) url += `&page=${crudParams.page}`;
-            if (crudParams.per_page) url += `&per_page=${crudParams.per_page}`;
-            if (crudParams.sort_field)
-                url += `&sort_field=${crudParams.sort_field}`;
-            if (crudParams.sort_order)
-                url += `&sort_order=${crudParams.sort_order}`;
-            if (crudParams.search)
-                url += `&search=${encodeURIComponent(crudParams.search)}`;
-            if (crudParams.search_criteria)
-                url += `&search_criteria=${crudParams.search_criteria}`;
-            if (crudParams.end_time)
-                url += `&end_time=${encodeURIComponent(crudParams.end_time)}`;
-
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return await response.json();
-        } catch (error) {
-            console.warn("API lỗi, tự động chuyển sang Mock Data:", error);
-            return mockDataService.getSensorDataList(limit, sample, crudParams);
-        }
+    static getSensorDataList(limit = 5, sample = 20, params = {}) {
+        const normalizedLimit = typeof limit === "string" && limit.toLowerCase() === "all" ? "all" : Number(limit);
+        return request(`${API_BASE_URL}/sensor-data-list?${queryString({ limit: normalizedLimit, sample, ...params })}`);
     }
 
-    static async getChartData(limit = "50") {
-        if (USE_MOCK_DATA) {
-            return mockDataService.getChartData(limit);
-        }
-        try {
-            let limitParam = limit;
-            if (typeof limit === "string" && limit !== "all") {
-                limitParam = parseInt(limit);
-            }
-
-            const url = `${API_BASE_URL}/sensor-data/chart?limit=${limitParam}`;
-            const response = await fetch(url);
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.warn("API lỗi, tự động chuyển sang Mock Data:", error);
-            return mockDataService.getChartData(limit);
-        }
+    static getChartData(limit = "50") {
+        const normalizedLimit = typeof limit === "string" && limit !== "all" ? parseInt(limit, 10) : limit;
+        return request(`${API_BASE_URL}/sensor-data/chart?${queryString({ limit: normalizedLimit })}`);
     }
 
-    static async getSensorDataByDate(date, limit = "50") {
-        if (USE_MOCK_DATA) {
-            return mockDataService.getSensorDataByDate(date, limit);
-        }
-        try {
-            let url = `${API_BASE_URL}/sensor-data/chart?date=${date}`;
-            if (limit) {
-                url += `&limit=${limit}`;
-            }
-
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return await response.json();
-        } catch (error) {
-            console.warn("API lỗi, tự động chuyển sang Mock Data:", error);
-            return mockDataService.getSensorDataByDate(date, limit);
-        }
+    static getSensorDataByDate(date, limit = "50") {
+        return request(`${API_BASE_URL}/sensor-data/chart?${queryString({ date, limit })}`);
     }
 
-    static async controlLED(ledId, action) {
-        if (USE_MOCK_DATA) {
-            return mockDataService.controlLED(ledId, action);
-        }
-        try {
-            const response = await fetch(`${API_BASE_URL}/led-control`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    led_id: ledId,
-                    action: action,
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.error("Không thể gửi lệnh điều khiển LED:", error);
-            throw error;
-        }
+    static controlLED(ledId, action) {
+        return request(`${API_BASE_URL}/led-control`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ led_id: ledId, action }),
+        });
     }
 
-    static async controlAllLEDs(action) {
+    static controlAllLEDs(action) {
         return this.controlLED("ALL", action);
     }
 
-    static async getLEDStatus() {
-        if (USE_MOCK_DATA) {
-            return mockDataService.getLEDStatus();
-        }
-        try {
-            const response = await fetch(`${API_BASE_URL}/led-status`);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return await response.json();
-        } catch (error) {
-            console.warn("API lỗi, tự động chuyển sang Mock Data:", error);
-            return mockDataService.getLEDStatus();
-        }
+    static getLEDStatus() {
+        return request(`${API_BASE_URL}/led-status`);
     }
 
-    static async getLEDStats(useCache = true, date = null) {
-        if (USE_MOCK_DATA) {
-            return mockDataService.getLEDStats(useCache, date);
-        }
-        try {
-            let url = `${API_BASE_URL}/led-stats?cache=${useCache}`;
-            if (date) {
-                url += `&date=${date}`;
-            }
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return await response.json();
-        } catch (error) {
-            console.warn("API lỗi, tự động chuyển sang Mock Data:", error);
-            return mockDataService.getLEDStats(useCache, date);
-        }
+    static getLEDStats(useCache = true, date = null) {
+        return request(`${API_BASE_URL}/led-stats?${queryString({ cache: useCache, date })}`);
     }
 
-    static async getActionHistory(limit = 50, crudParams = {}) {
-        if (USE_MOCK_DATA) {
-            return mockDataService.getActionHistory(limit, crudParams);
-        }
-        try {
-            let url = `${API_BASE_URL}/action-history?limit=${limit}`;
-
-            if (crudParams.page) url += `&page=${crudParams.page}`;
-            if (crudParams.per_page) url += `&per_page=${crudParams.per_page}`;
-            if (crudParams.sort_field)
-                url += `&sort_field=${crudParams.sort_field}`;
-            if (crudParams.sort_order)
-                url += `&sort_order=${crudParams.sort_order}`;
-            if (crudParams.search)
-                url += `&search=${encodeURIComponent(crudParams.search)}`;
-            if (crudParams.end_time)
-                url += `&end_time=${encodeURIComponent(crudParams.end_time)}`;
-            if (crudParams.device_filter)
-                url += `&device_filter=${crudParams.device_filter}`;
-            if (crudParams.action_filter)
-                url += `&action_filter=${crudParams.action_filter}`;
-            if (crudParams.state_filter)
-                url += `&state_filter=${crudParams.state_filter}`;
-
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return await response.json();
-        } catch (error) {
-            console.warn("API lỗi, tự động chuyển sang Mock Data:", error);
-            return mockDataService.getActionHistory(limit, crudParams);
-        }
+    static getActionHistory(limit = 50, params = {}) {
+        return request(`${API_BASE_URL}/action-history?${queryString({ limit, ...params })}`);
     }
 
-    static async getAvailableDates() {
-        if (USE_MOCK_DATA) {
-            return mockDataService.getAvailableDates();
-        }
-        try {
-            const response = await fetch(`${API_BASE_URL}/available-dates`);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return await response.json();
-        } catch (error) {
-            console.warn("API lỗi, tự động chuyển sang Mock Data:", error);
-            return mockDataService.getAvailableDates();
-        }
+    static getAvailableDates() {
+        return request(`${API_BASE_URL}/available-dates`);
     }
 
-    static async getAvailableLEDDates() {
-        if (USE_MOCK_DATA) {
-            return mockDataService.getAvailableLEDDates();
-        }
-        try {
-            const response = await fetch(`${API_BASE_URL}/available-led-dates`);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return await response.json();
-        } catch (error) {
-            console.warn("API lỗi, tự động chuyển sang Mock Data:", error);
-            return mockDataService.getAvailableLEDDates();
-        }
+    static getAvailableLEDDates() {
+        return request(`${API_BASE_URL}/available-led-dates`);
     }
 
-    static async getHomeData() {
-        if (USE_MOCK_DATA) {
-            return mockDataService.getHomeData();
-        }
-        try {
-            const response = await fetch(`${API_BASE_URL}/home-data`);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return await response.json();
-        } catch (error) {
-            console.warn("API lỗi, tự động chuyển sang Mock Data:", error);
-            return mockDataService.getHomeData();
-        }
+    static getHomeData() {
+        return request(`${API_BASE_URL}/home-data`);
     }
 
-    static async getThresholds() {
-        if (USE_MOCK_DATA) {
-            return mockDataService.getThresholds();
-        }
-        try {
-            const response = await fetch(`${API_BASE_URL}/thresholds`);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return await response.json();
-        } catch (error) {
-            console.warn("API lỗi, tự động chuyển sang Mock Data:", error);
-            return mockDataService.getThresholds();
-        }
+    static getThresholds() {
+        return request(`${API_BASE_URL}/thresholds`);
     }
 
-    static async updateThresholds(thresholds) {
-        if (USE_MOCK_DATA) {
-            return mockDataService.updateThresholds(thresholds);
-        }
-        try {
-            const response = await fetch(`${API_BASE_URL}/thresholds`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(thresholds),
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.warn("API lỗi, tự động chuyển sang Mock Data:", error);
-            return mockDataService.updateThresholds(thresholds);
-        }
+    static updateThresholds(thresholds) {
+        return request(`${API_BASE_URL}/thresholds`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(thresholds),
+        });
     }
 }
 

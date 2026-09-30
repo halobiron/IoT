@@ -186,7 +186,7 @@ class ActionHistoryTable {
               : "-";
 
         const responseTimeTd = document.createElement("td");
-        responseTimeTd.textContent = item.response_time || this._mockResponseTime(item);
+        responseTimeTd.textContent = item.response_time || "-";
 
         const userTd = document.createElement("td");
         userTd.textContent = item.user || item.username || item.operator || "Hệ thống";
@@ -221,11 +221,6 @@ class ActionHistoryTable {
         return tr;
     }
 
-    _mockResponseTime(item) {
-        const source = String(item._id || item.timestamp || "0");
-        const value = [...source].reduce((sum, char) => sum + char.charCodeAt(0), 0);
-        return `${(0.4 + (value % 31) / 10).toFixed(1)}s`;
-    }
 
     updateData(
         newItems,
