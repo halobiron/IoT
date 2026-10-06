@@ -266,7 +266,8 @@ Tài liệu API đầy đủ có sẵn tại `http://localhost:5000/docs/` khi b
 -   **GET** `/api/v1/sensors/sensor-data` - Lấy dữ liệu cảm biến mới nhất với thông tin trạng thái
 -   **GET** `/api/v1/sensors/sensor-data-list` - Lấy danh sách dữ liệu cảm biến với phân trang, sắp xếp và tìm kiếm nâng cao
 -   **GET** `/api/v1/sensors/sensor-data/chart` - Lấy dữ liệu biểu đồ với lọc theo thời gian và chọn ngày
--   **GET** `/api/v1/sensors/home-data` - Lấy dữ liệu kết hợp cho trang chủ (dữ liệu cảm biến mới nhất + trạng thái LED)
+
+Dữ liệu cảm biến từ ESP32 được tiếp nhận qua MQTT topic `esp32/iot/data`; không có REST endpoint để ghi nhận dữ liệu cảm biến.
 
 #### Endpoint Điều Khiển LED
 
@@ -423,38 +424,6 @@ GET /api/v1/sensors/sensor-data/chart?date=2024-01-15&limit=100
         "timestamp": "2024-01-15T10:31:00+07:00"
     }
 ]
-```
-
-#### GET `/api/v1/sensors/home-data`
-
-Lấy dữ liệu kết hợp cho trang chủ (dữ liệu cảm biến mới nhất + trạng thái LED).
-
-**Response:**
-
-```json
-{
-    "status": "success",
-    "data": {
-        "temperature": 25.5,
-        "humidity": 60.2,
-        "light": 45.8,
-        "timestamp": "2024-01-15T10:30:00+07:00",
-        "sensor_statuses": {
-            "temperature": "normal",
-            "humidity": "normal",
-            "light": "normal"
-        },
-        "overall_status": {
-            "status": "normal",
-            "color_class": "status-normal"
-        },
-        "led_status": {
-            "LED1": "ON",
-            "LED2": "OFF",
-            "LED3": "ON"
-        }
-    }
-}
 ```
 
 #### POST `/api/v1/sensors/led-control`

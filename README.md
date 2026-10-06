@@ -250,7 +250,8 @@ Complete API documentation is available at `http://localhost:5000/docs/` when th
 -   **GET** `/api/v1/sensors/sensor-data` - Get latest sensor data with status information
 -   **GET** `/api/v1/sensors/sensor-data-list` - Get paginated sensor data with advanced filtering, sorting, and search
 -   **GET** `/api/v1/sensors/sensor-data/chart` - Get chart data with time-based filtering and date selection
--   **GET** `/api/v1/sensors/home-data` - Get combined home page data (latest sensor data + LED status)
+
+Sensor readings are ingested from the ESP32 through MQTT topic `esp32/iot/data`; there is no REST endpoint for ingesting sensor data.
 
 #### LED Control Endpoints
 
@@ -407,38 +408,6 @@ GET /api/v1/sensors/sensor-data/chart?date=2024-01-15&limit=100
         "timestamp": "2024-01-15T10:31:00+07:00"
     }
 ]
-```
-
-#### GET `/api/v1/sensors/home-data`
-
-Get combined data for home page (latest sensor data + LED status).
-
-**Response:**
-
-```json
-{
-    "status": "success",
-    "data": {
-        "temperature": 25.5,
-        "humidity": 60.2,
-        "light": 45.8,
-        "timestamp": "2024-01-15T10:30:00+07:00",
-        "sensor_statuses": {
-            "temperature": "normal",
-            "humidity": "normal",
-            "light": "normal"
-        },
-        "overall_status": {
-            "status": "normal",
-            "color_class": "status-normal"
-        },
-        "led_status": {
-            "LED1": "ON",
-            "LED2": "OFF",
-            "LED3": "ON"
-        }
-    }
-}
 ```
 
 #### POST `/api/v1/sensors/led-control`

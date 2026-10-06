@@ -34,7 +34,6 @@ def build_openapi_spec():
     """Return an OpenAPI document matching the routes in ``app.api.routes``."""
     paths = {
         "/api/v1/sensors/sensor-data": _get("Get the latest sensor reading"),
-        "/api/v1/sensors/home-data": _get("Get current sensor and LED data"),
         "/api/v1/sensors/led-status": _get("Get LED states and pending commands"),
         "/api/v1/sensors/available-dates": _get("List dates containing sensor data"),
         "/api/v1/sensors/available-led-dates": _get("List dates containing LED history"),

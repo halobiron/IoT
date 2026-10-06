@@ -65,10 +65,6 @@ class SensorDataService {
         return request(`${API_BASE_URL}/available-led-dates`);
     }
 
-    static getHomeData() {
-        return request(`${API_BASE_URL}/home-data`);
-    }
-
     static getThresholds() {
         return request(`${API_BASE_URL}/thresholds`);
     }
