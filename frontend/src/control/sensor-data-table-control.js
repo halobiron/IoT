@@ -35,14 +35,22 @@ class SensorDataTableController {
             pageSize.value = this.itemsPerPage;
 
             pageSize.addEventListener("change", (e) => {
-                const newPageSize = parseInt(e.target.value, 10);
+                const newPageSize = Number(e.target.value);
 
-                if (newPageSize && newPageSize > 0 && newPageSize <= 100) {
+                if (Number.isInteger(newPageSize) && newPageSize >= 1 && newPageSize <= 100) {
+                    e.target.value = String(newPageSize);
+                    if (newPageSize === this.itemsPerPage) return;
                     this.itemsPerPage = newPageSize;
                     this.currentPage = 1;
                     this.loadData();
                 } else {
                     e.target.value = this.itemsPerPage;
+                }
+            });
+            pageSize.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    pageSize.blur();
                 }
             });
         }
@@ -301,8 +309,12 @@ class SensorDataTableController {
             const isTimeFilter = Boolean(
                 this.searchCriteria === "time" && this.valueSearchTerm
             );
+            // One API record expands into three visible rows in the all-sensor view.
+            const rowsPerRecord = this.table.sensorFilter === "all" ? 3 : 1;
+            const requestedPage = this.currentPage;
+            const rowOffset = ((requestedPage - 1) % rowsPerRecord) * this.itemsPerPage;
             const crudParams = {
-                page: this.currentPage,
+                page: Math.ceil(requestedPage / rowsPerRecord),
                 per_page: this.itemsPerPage,
                 sort_field: this.sortField,
                 sort_order: this.sortOrder,
@@ -330,11 +342,22 @@ class SensorDataTableController {
             if (response.status === "success" && response.data) {
                 console.log("Data received:", response.data);
                 console.log("Data count:", response.data.length);
+                const totalRows = response.pagination.total_count * rowsPerRecord;
+                const totalPages = Math.max(1, Math.ceil(totalRows / this.itemsPerPage));
                 this.table.renderTable(
                     response.data,
-                    response.pagination,
+                    {
+                        ...response.pagination,
+                        page: requestedPage,
+                        per_page: this.itemsPerPage,
+                        total_count: totalRows,
+                        total_pages: totalPages,
+                        has_prev: requestedPage > 1,
+                        has_next: requestedPage < totalPages,
+                    },
                     response.sort,
-                    response.search
+                    response.search,
+                    rowOffset
                 );
             } else {
                 console.error("Lỗi khi tải dữ liệu bảng:", response.message);
@@ -381,7 +404,7 @@ class SensorDataTableController {
             ) {
                 const crudParams = {
                     page: 1,
-                    per_page: 3,
+                    per_page: this.itemsPerPage,
                     sort_field: this.sortField,
                     sort_order: this.sortOrder,
                     search: "",
@@ -397,7 +420,7 @@ class SensorDataTableController {
                 if (response.status === "success" && response.data) {
                     const currentData = this.table.getData();
                     if (
-                        JSON.stringify(currentData.slice(0, 3)) !==
+                        JSON.stringify(currentData) !==
                         JSON.stringify(response.data)
                     ) {
                         this.updateIndicator.show();

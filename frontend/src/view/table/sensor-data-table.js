@@ -17,7 +17,8 @@ class SensorDataTable {
         data = null,
         paginationInfo = null,
         sortInfo = null,
-        searchInfo = null
+        searchInfo = null,
+        rowOffset = 0
     ) {
         console.log("renderTable called with:", {
             data,
@@ -40,6 +41,7 @@ class SensorDataTable {
             this.searchData = searchInfo;
         }
 
+        this.rowOffset = rowOffset;
         this.renderTableBody();
         this.renderPagination();
         this.updateSortHeaders();
@@ -65,7 +67,7 @@ class SensorDataTable {
         }
 
         this.tableBody.innerHTML = this.currentData
-            .flatMap((item, index) => {
+            .flatMap((item) => {
                 const timestamp = this.formatDateTime(item.timestamp);
                 const sensors = [
                     ["temperature", "Cảm biến nhiệt độ", `${item.temperature?.toFixed(1) || "N/A"} °C`],
@@ -73,27 +75,26 @@ class SensorDataTable {
                     ["humidity", "Cảm biến độ ẩm", `${item.humidity?.toFixed(1) || "N/A"} %`],
                 ].filter(([type]) => this.sensorFilter === "all" || type === this.sensorFilter);
 
-                let baseId = index * sensors.length;
-                if (
-                    this.paginationData &&
-                    this.paginationData.page &&
-                    this.paginationData.per_page
-                ) {
-                    baseId =
-                        (this.paginationData.page - 1) *
-                            this.paginationData.per_page *
-                            sensors.length +
-                        baseId;
-                }
-
-                return sensors.map(([, name, value], sensorIndex) => `
+                return sensors.map(([, name, value]) => ({ name, value, timestamp }));
+            })
+            .slice(
+                this.rowOffset || 0,
+                this.paginationData
+                    ? (this.rowOffset || 0) + this.paginationData.per_page
+                    : undefined
+            )
+            .map(({ name, value, timestamp }, index) => {
+                const rowNumber = this.paginationData
+                    ? (this.paginationData.page - 1) * this.paginationData.per_page + index + 1
+                    : index + 1;
+                return `
                     <tr>
-                        <td>${baseId + sensorIndex + 1}</td>
+                        <td>${rowNumber}</td>
                         <td>${name}</td>
                         <td>${value}</td>
                         <td>${timestamp}</td>
                     </tr>
-                `);
+                `;
             })
             .join("");
     }
@@ -140,6 +141,11 @@ class SensorDataTable {
 
         this.pageNumbers.innerHTML = "";
 
+        const prevBtn = document.getElementById("prevPage");
+        const nextBtn = document.getElementById("nextPage");
+        if (prevBtn) prevBtn.disabled = !has_prev;
+        if (nextBtn) nextBtn.disabled = !has_next;
+
         if (total_pages <= 1) return;
 
         let startPage = Math.max(1, page - 2);
@@ -171,15 +177,6 @@ class SensorDataTable {
             );
         }
 
-        const prevBtn = document.getElementById("prevPage");
-        const nextBtn = document.getElementById("nextPage");
-
-        if (prevBtn) {
-            prevBtn.disabled = !has_prev;
-        }
-        if (nextBtn) {
-            nextBtn.disabled = !has_next;
-        }
     }
 
     createPageButton(pageNum, text, isDisabled = false, isActive = false) {

@@ -1017,6 +1017,20 @@ button:disabled {
     gap: 4px;
 }
 
+.page-size-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.page-size-control .page-size-input {
+    width: 76px;
+    flex: 0 0 76px;
+}
+
 .page-btn, .page-number-btn {
     min-width: 32px;
     height: 32px;

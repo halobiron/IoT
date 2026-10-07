@@ -118,12 +118,10 @@ class ActionHistoryTable {
         <span id="actionPaginationInfo">Hiển thị 0 - 0 của 0 bản ghi</span>
       </div>
       <div class="pagination-controls">
-        <select id="actionTablePageSize" class="page-size-select">
-          <option value="10">10 dòng</option>
-          <option value="25">25 dòng</option>
-          <option value="50">50 dòng</option>
-          <option value="100">100 dòng</option>
-        </select>
+        <label class="page-size-control" for="actionTablePageSize">
+          <input id="actionTablePageSize" class="page-size-input" type="number" min="1" max="100" step="1" value="10" aria-label="Số dòng mỗi trang" title="Nhập số nguyên từ 1 đến 100">
+          <span>dòng/trang</span>
+        </label>
         <button id="actionPrevPage" class="page-btn" disabled>
           <i class="fas fa-chevron-left"></i>
           Trước

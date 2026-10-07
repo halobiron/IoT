@@ -424,13 +424,21 @@ class ActionHistoryTableControl {
             pageSize.value = String(this.itemsPerPage);
 
             pageSize.addEventListener("change", async (e) => {
-                const newPageSize = parseInt(e.target.value, 10);
-                if (newPageSize && newPageSize > 0 && newPageSize <= 100) {
+                const newPageSize = Number(e.target.value);
+                if (Number.isInteger(newPageSize) && newPageSize >= 1 && newPageSize <= 100) {
+                    e.target.value = String(newPageSize);
+                    if (newPageSize === this.itemsPerPage) return;
                     this.itemsPerPage = newPageSize;
                     this.currentPage = 1;
                     await this.load(this.itemsPerPage);
                 } else {
                     e.target.value = this.itemsPerPage;
+                }
+            });
+            pageSize.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    pageSize.blur();
                 }
             });
         }
