@@ -1,6 +1,5 @@
 import SensorDataService from "../services/api.js";
 import HomePageChart from "../view/charts/home-page-chart.js";
-import { initializeDatePicker } from "../utils/date-picker.js";
 
 class HomePageChartController {
     constructor() {
@@ -11,54 +10,14 @@ class HomePageChartController {
         this.isLoading = false;
         this.refreshInterval = null;
 
-        this.datePicker = document.getElementById("datePicker");
         this.sensorTypeSelector = document.getElementById("sensorTypeSelector");
         this.dataLimitSelector = document.getElementById("dataLimitSelector");
     }
 
     async init() {
         this.setupEventListeners();
-        await this.initializeDatePicker();
         await this.loadChart();
         this.startAutoRefresh();
-    }
-
-    async initializeDatePicker() {
-        const today = new Date();
-        const formattedDate = this.getLocalDateString(today);
-        this.selectedDate = formattedDate;
-
-        let availableDates = [];
-        try {
-            const response = await SensorDataService.getAvailableDates();
-            if (response.status === "success" && response.data) {
-                availableDates = response.data;
-                console.log("Available dates:", availableDates);
-            }
-        } catch (error) {
-            console.error("Lỗi khi lấy danh sách ngày có dữ liệu:", error);
-        }
-
-        if (this.datePicker) {
-            initializeDatePicker(this.datePicker, {
-                availableDates,
-                defaultDate: formattedDate,
-                onChange: (selectedDates, dateStr) => {
-                    if (selectedDates.length > 0) {
-                        this.selectedDate = dateStr;
-                        console.log(
-                            "Selected date changed to:",
-                            this.selectedDate
-                        );
-                        this.stopAutoRefresh();
-                        this.loadChart();
-                        this.startAutoRefresh();
-                    }
-                },
-            });
-        }
-
-        console.log("Date picker initialized with:", this.selectedDate);
     }
 
     setupEventListeners() {

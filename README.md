@@ -1,782 +1,126 @@
-# IoT Monitoring System
+﻿# Hệ thống giám sát và điều khiển IoT
 
-<div align="center">
+Bài tập lớn IoT sử dụng ESP32 để đo nhiệt độ, độ ẩm, ánh sáng và điều khiển 3 đèn LED qua giao diện web.
 
-[![English](https://img.shields.io/badge/English-Click_to_View-yellow)](README.md)
-[![Vietnamese](https://img.shields.io/badge/Vietnamese-Click_to_View-orange)](README_vi.md)
+## Chức năng
 
-</div>
+- Hiển thị dữ liệu cảm biến và biểu đồ theo thời gian.
+- Bật, tắt từng LED hoặc cả 3 LED.
+- Tra cứu dữ liệu cảm biến và lịch sử bật, tắt LED.
+- Tìm kiếm, sắp xếp và phân trang dữ liệu.
+- Đăng nhập, xem hồ sơ và cài đặt ngưỡng cảnh báo cảm biến.
 
-A comprehensive IoT monitoring and control system using ESP32, featuring a modern web interface and powerful backend API with advanced NoSQL query capabilities.
+## Thành phần
 
-## Table of Contents
+| Thành phần | Công nghệ |
+| --- | --- |
+| Thiết bị | ESP32, DHT11, cảm biến ánh sáng, 3 LED |
+| Giao tiếp với thiết bị | MQTT qua TLS, sử dụng HiveMQ Cloud |
+| Máy chủ | Python, Flask |
+| Cơ sở dữ liệu | MongoDB |
+| Giao diện web | HTML, CSS, JavaScript, Chart.js |
 
--   [Overview](#overview)
--   [System Architecture](#system-architecture)
--   [Key Features](#key-features)
--   [Quick Start](#quick-start)
--   [Installation and Setup](#installation-and-setup)
--   [API Documentation](#api-documentation)
--   [Project Structure](#project-structure)
--   [MQTT Topics](#mqtt-topics)
--   [Development](#development)
--   [Troubleshooting](#troubleshooting)
--   [Contributing](#contributing)
--   [License](#license)
--   [Support](#support)
+ESP32 gửi dữ liệu qua MQTT tới máy chủ. Máy chủ lưu dữ liệu vào MongoDB và cung cấp API cho giao diện web. Lệnh điều khiển LED được gửi ngược lại qua MQTT.
 
-## Overview
+## Chạy dự án
 
-This project implements a complete IoT monitoring system including:
+Chuẩn bị Python, MongoDB và tài khoản MQTT. Để nhận dữ liệu thực và điều khiển LED, cần kết nối ESP32 theo hướng dẫn bên dưới.
 
--   **Hardware**: ESP32 device with DHT11 temperature/humidity sensor, light sensor, and 3 LED controls
--   **Backend**: REST API built with Flask, MongoDB, and MQTT integration
--   **Frontend**: Responsive web interface with real-time charts, data tables, and LED controls
--   **Communication**: MQTT protocol for real-time communication between ESP32 and backend
--   **Advanced Features**: NoSQL queries, data aggregation, time-based filtering, and comprehensive search
+### 1. Cài thư viện
 
-## System Architecture
+Mở PowerShell tại thư mục `IoT_Project` và chạy:
 
-```text
-┌─────────────────────┐       MQTT/TLS       ┌─────────────────────┐
-│ ESP32                │ ◄─────────────────► │ HiveMQ Cloud        │
-│ DHT11 + light sensor│                      │ MQTT broker         │
-│ 3 physical LEDs     │                      └──────────┬──────────┘
-└─────────────────────┘                                 │
-                                                        │ MQTT/TLS
-                                             ┌──────────▼──────────┐
-                                             │ Flask application    │
-                                             │ backend/main.py      │
-                                             │                      │
-                                             │ REST API + Swagger   │
-                                             │ MQTT receiver/       │
-                                             │ command services     │
-                                             └───────┬───────┬──────┘
-                                                     │       │
-                                                   MongoDB  HTTP/JSON
-                                                     │       │
-                                             ┌───────▼───┐ ┌─▼──────────────┐
-                                             │ sensor_data│ │ Static frontend │
-                                             │ action_    │ │ frontend/public │
-                                             │ history    │ │ + frontend/src  │
-                                             └────────────┘ └────────────────┘
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r backend/requirements.txt
+.\.venv\Scripts\python.exe -m pip install PyJWT
 ```
 
-The project is deployed as one Flask process. It serves the static pages under `frontend/public` and JavaScript/CSS under `frontend/src`, exposes the `/api/v1` API, and starts the MQTT receiver in a background thread. The ESP32 publishes sensor readings and LED status to the broker; the backend persists them in MongoDB and publishes LED control commands back to the device.
+`PyJWT` cần cho chức năng đăng nhập nhưng hiện chưa được liệt kê trong `requirements.txt`.
 
-## Data Model (ERD)
+### 2. Cấu hình kết nối
 
-The persisted MongoDB collections are `sensor_data` and `action_history`. `LED_DEVICE` is an application-level reference entity; `action_history.led` is a logical reference to `LED_DEVICE.led_id`, not a MongoDB-enforced foreign key.
+Nếu chưa có `backend/.env`, tạo từ tệp mẫu:
 
-```mermaid
-erDiagram
-    SENSOR_DATA {
-        ObjectId _id PK
-        float temperature
-        float humidity
-        float light
-        datetime timestamp
-    }
-
-    ACTION_HISTORY {
-        ObjectId _id PK
-        string type
-        string led FK
-        string action
-        string state
-        datetime timestamp
-        string device
-        string description
-    }
-
-    LED_DEVICE {
-        string led_id PK
-        string name
-        string device_type
-        string status
-    }
-
-    LED_DEVICE ||--o{ ACTION_HISTORY : "has status changes"
+```powershell
+Copy-Item backend/.env.example backend/.env
 ```
 
-## Key Features
+Sửa các giá trị trong `backend/.env`:
 
-### Hardware (ESP32)
+| Biến | Nội dung |
+| --- | --- |
+| `MONGODB_CONNECTION_STRING` | Chuỗi kết nối MongoDB; ví dụ `mongodb://localhost:27017` |
+| `MONGODB_DB_NAME` | Tên cơ sở dữ liệu, mặc định `iot_database` |
+| `MQTT_BROKER_HOST` | Địa chỉ máy chủ MQTT |
+| `MQTT_BROKER_PORT` | Cổng MQTT, mặc định `8883` |
+| `MQTT_USERNAME`, `MQTT_PASSWORD` | Tài khoản MQTT |
+| `API_PORT` | Cổng web, giữ `5000` để khớp cấu hình giao diện hiện tại |
 
--   **DHT11 Sensor**: Temperature and humidity readings
--   **Light Sensor**: Analog light sensor via ADC (Pin 34)
--   **LED Control**: 3 LEDs (Pins 25, 26, 27) with remote control
--   **WiFi Connectivity**: Automatic connection and reconnection
--   **MQTT Communication**: Secure TLS connection to HiveMQ Cloud
--   **Real-time Data**: Sends sensor data every 1 second
--   **Action History**: Publishes LED status changes
+Giữ các chủ đề MQTT trong tệp mẫu nếu dùng mã ESP32 hiện tại.
 
-### Backend API
+### 3. Khởi động
 
--   **RESTful API** with versioning (`/api/v1/`) and Swagger documentation
--   **MQTT Integration**: Receives sensor data and publishes LED commands
--   **MongoDB Database**: Stores sensor data and action history
--   **Advanced NoSQL Queries**: Text search, range queries, aggregation
--   **Real-time LED Control**: MQTT-based remote LED control
--   **Data Validation**: Comprehensive input validation and error handling
--   **Pagination & Filtering**: Advanced data filtering with time-based queries
--   **Timezone Support**: Vietnam timezone handling for all timestamps
--   **Health Monitoring**: System status and connection monitoring
-
-### Frontend
-
--   **Home Page**: Real-time sensor cards, LED controls, and interactive charts
--   **Sensor Data Page**: Advanced data table with search, filtering, and pagination
--   **Action History Page**: LED control history with comprehensive filtering
--   **Profile Page**: User interface for system settings
--   **Responsive Design**: Mobile-friendly interface with sidebar navigation
--   **Real-time Updates**: Live data updates without page refresh
--   **Interactive Charts**: Chart.js integration with time-based data visualization
-
-## Quick Start
-
-1. **Clone the repository**
-2. **Set up the backend** (see [Backend Setup](#backend-setup))
-3. **Configure the hardware** (see [Hardware Setup](#hardware-setup))
-4. **Access the web interface** at `http://localhost:5000`
-
-## Installation and Setup
-
-### System Requirements
-
--   Python 3.8+
--   MongoDB (local or cloud)
--   MQTT Broker (HiveMQ Cloud recommended)
--   ESP32 development board
--   Arduino IDE with ESP32 board package
-
-### Backend Setup
-
-1. **Clone repository and install dependencies:**
-
-```bash
+```powershell
 cd backend
-pip install -r requirements.txt
+..\.venv\Scripts\python.exe main.py
 ```
 
-2. **Configure environment variables:**
-   Create `.env` file in `backend/` directory:
+- Giao diện: [http://localhost:5000](http://localhost:5000).
+- Tài liệu API: [http://localhost:5000/docs/](http://localhost:5000/docs/).
+- Tài khoản thử nghiệm: `demo`, mật khẩu `123456`.
 
-```env
-# Database Configuration
-MONGODB_CONNECTION_STRING=mongodb://localhost:27017
-MONGODB_DB_NAME=iot_database
-MONGODB_COLLECTION_NAME=sensor_data
+Flask phục vụ cả giao diện và API, nên không cần chạy máy chủ giao diện riêng.
 
-# MQTT Configuration (HiveMQ Cloud)
-MQTT_BROKER_HOST=your-hivemq-broker-host
-MQTT_BROKER_PORT=8883
-MQTT_USERNAME=your-hivemq-username
-MQTT_PASSWORD=your-hivemq-password
-MQTT_DATA_TOPIC=esp32/iot/data
-MQTT_CONTROL_TOPIC=esp32/iot/control
-MQTT_ACTION_HISTORY_TOPIC=esp32/iot/action-history
+## Cấu hình ESP32
 
-# API Configuration
-API_HOST=0.0.0.0
-API_PORT=5000
-SECRET_KEY=your-secret-key
-DEBUG_MODE=True
+Mở [IoT_Device.ino](hardware/IoT_Device/IoT_Device.ino) bằng Arduino IDE:
 
-# Sensor Thresholds (Optional)
-TEMP_NORMAL_MIN=25.0
-TEMP_NORMAL_MAX=35.0
-HUMIDITY_NORMAL_MIN=40.0
-HUMIDITY_NORMAL_MAX=60.0
-LIGHT_NORMAL_MIN=40.0
-LIGHT_NORMAL_MAX=60.0
-```
+1. Cài bộ hỗ trợ bo mạch ESP32 và các thư viện `PubSubClient`, `DHT sensor library` cùng thư viện phụ thuộc.
+2. Sửa thông tin Wi-Fi và MQTT trong mã để khớp với kết nối của bạn.
+3. Chọn đúng bo mạch, cổng kết nối rồi nạp chương trình.
+4. Mở Serial Monitor để kiểm tra kết nối và dữ liệu cảm biến.
 
-3. **Run backend:**
+Các chân đang dùng trong mã:
 
-```bash
-python main.py
-```
+| Thiết bị | Chân ESP32 |
+| --- | --- |
+| DHT11 | GPIO 21 |
+| Cảm biến ánh sáng, ngõ ra DO | GPIO 4 |
+| LED 1, LED 2, LED 3 | GPIO 23, 22, 18 |
 
-Backend will run at `http://localhost:5000`
+ESP32 đọc cảm biến mỗi 2 giây. Giá trị ánh sáng hiện là `0` hoặc `100` từ ngõ ra số DO.
 
-**API Documentation**: Available at `http://localhost:5000/docs/`
+### Chủ đề MQTT
 
-### Frontend Setup
+| Chủ đề | Mục đích |
+| --- | --- |
+| `esp32/iot/data` | ESP32 gửi dữ liệu cảm biến |
+| `esp32/iot/control` | Máy chủ gửi lệnh điều khiển LED |
+| `esp32/iot/action-history` | ESP32 gửi trạng thái bật, tắt LED |
 
-Frontend consists of static files served by Flask backend. No additional dependencies required.
+Ví dụ lệnh điều khiển: `led1:on`, `led1:off`, `all:on`, `all:off`.
 
-The frontend is automatically served by the Flask backend at `http://localhost:5000/`
-
-### Hardware Setup
-
-1. **Install Arduino IDE and ESP32 board package**
-
-2. **Hardware connections:**
-
-```text
-ESP32 Pin Connections:
-- DHT11: Pin 21
-- Light Sensor: Pin 34 (ADC)
-- LED1: Pin 25
-- LED2: Pin 26
-- LED3: Pin 27
-```
-
-3. **Configure WiFi and MQTT:**
-   Edit parameters in [`hardware/IoT_Device/IoT_Device.ino`](hardware/IoT_Device/IoT_Device.ino) file:
-
-```cpp
-// WiFi Configuration
-const char *wifiSsid = "YOUR_WIFI_SSID";
-const char *wifiPassword = "YOUR_WIFI_PASSWORD";
-
-// MQTT Configuration (HiveMQ Cloud)
-const char *mqttServer = "your-hivemq-broker-host";
-const char *mqttUsername = "your-hivemq-username";
-const char *mqttPassword = "your-hivemq-password";
-```
-
-4. **Upload code to ESP32**
-
-## API Documentation
-
-Complete API documentation is available at `http://localhost:5000/docs/` when the backend is running.
-
-### Main Endpoints
-
-#### Sensor Data Endpoints
-
--   **GET** `/api/v1/sensors/sensor-data` - Get latest sensor data with status information
--   **GET** `/api/v1/sensors/sensor-data-list` - Get paginated sensor data with advanced filtering, sorting, and search
--   **GET** `/api/v1/sensors/sensor-data/chart` - Get chart data with time-based filtering and date selection
-
-Sensor readings are ingested from the ESP32 through MQTT topic `esp32/iot/data`; there is no REST endpoint for ingesting sensor data.
-
-#### LED Control Endpoints
-
--   **POST** `/api/v1/sensors/led-control` - Control LED (ON/OFF) via MQTT
--   **GET** `/api/v1/sensors/led-status` - Get current LED status and pending commands
--   **GET** `/api/v1/sensors/action-history` - Get LED action history with filtering and pagination
-
-### Query Parameters
-
-#### Sensor Data List (`/api/v1/sensors/sensor-data-list`)
-
--   `page`: Page number (default: 1, min: 1)
--   `per_page`: Records per page (default: 10, min: 1, max: 100)
--   `sort_field`: Sort field - `timestamp`, `temperature`, `humidity`, `light` (default: `timestamp`)
--   `sort_order`: Sort order - `asc`, `desc` (default: `desc`)
--   `limit`: Limit number of records (positive integer) or `"all"` for all records
--   `search`: Search term for filtering (supports text search and time-based search)
--   `search_criteria`: Search criteria - `all`, `temperature`, `humidity`, `light`, `time` (default: `all`)
--   `sample`: Sampling frequency - every nth record (default: 1, min: 1)
-
-**Search Examples:**
-
--   Text search: `search=25.5&search_criteria=temperature` - Find records with temperature = 25.5
--   Time search: `search=10:30:00 15/01/2024&search_criteria=time` - Find records at specific time
--   Time patterns: `HH:MM:SS DD/MM/YYYY`, `HH:MM:SS`, `HH:MM`, `DD/MM/YYYY`, `HH:MM DD/MM/YYYY`
-
-#### Chart Data (`/api/v1/sensors/sensor-data/chart`)
-
--   `limit`: Number of records (default: 50, positive integer) or `"all"` for all records
--   `date`: Specific date in `YYYY-MM-DD` format (returns all records for that day)
--   `timePeriod`: Time period filter (deprecated - use `date` instead)
-
-**Modes:**
-
--   **Real-time mode** (no `date` parameter): Returns most recent records up to `limit`
--   **Historical mode** (`date` parameter): Returns all records for specified date (or limited by `limit`)
-
-#### Action History (`/api/v1/sensors/action-history`)
-
--   `page`: Page number (default: 1, min: 1)
--   `per_page`: Records per page (default: 10, min: 1, max: 100)
--   `sort_field`: Sort field - `timestamp`, `led`, `state` (default: `timestamp`)
--   `sort_order`: Sort order - `asc`, `desc` (default: `desc`)
--   `search`: Search term for filtering
--   `device_filter`: Filter by device - `all`, `LED1`, `LED2`, `LED3` (default: `all`)
--   `state_filter`: Filter by state - `all`, `ON`, `OFF` (default: `all`)
--   `limit`: Limit number of records (will reduce `per_page` if lower)
-
-### Request/Response Examples
-
-#### GET `/api/v1/sensors/sensor-data`
-
-Get the latest sensor reading with status information.
-
-**Response:**
-
-```json
-{
-    "_id": "507f1f77bcf86cd799439011",
-    "temperature": 25.5,
-    "humidity": 60.2,
-    "light": 45.8,
-    "timestamp": "2024-01-15T10:30:00+07:00",
-    "sensor_statuses": {
-        "temperature": "normal",
-        "humidity": "normal",
-        "light": "normal"
-    },
-    "overall_status": {
-        "status": "normal",
-        "color_class": "status-normal"
-    }
-}
-```
-
-#### GET `/api/v1/sensors/sensor-data-list`
-
-Get paginated list of sensor data with advanced filtering.
-
-**Request Examples:**
-
-```
-GET /api/v1/sensors/sensor-data-list?page=1&per_page=20
-GET /api/v1/sensors/sensor-data-list?search=25.5&search_criteria=temperature
-GET /api/v1/sensors/sensor-data-list?search=10:30:00&search_criteria=time
-GET /api/v1/sensors/sensor-data-list?sort_field=temperature&sort_order=desc
-GET /api/v1/sensors/sensor-data-list?sample=5&limit=100
-```
-
-**Response:**
-
-```json
-{
-    "status": "success",
-    "data": [
-        {
-            "_id": "507f1f77bcf86cd799439011",
-            "temperature": 25.5,
-            "humidity": 60.2,
-            "light": 45.8,
-            "timestamp": "2024-01-15T10:30:00+07:00"
-        }
-    ],
-    "pagination": {
-        "page": 1,
-        "per_page": 10,
-        "total_count": 150,
-        "total_pages": 15,
-        "has_prev": false,
-        "has_next": true
-    },
-    "sort": {
-        "field": "timestamp",
-        "order": "desc"
-    },
-    "search": {
-        "term": "",
-        "criteria": "all"
-    },
-    "count": 10,
-    "total_count": 150
-}
-```
-
-#### GET `/api/v1/sensors/sensor-data/chart`
-
-Get sensor data for charts with time-based filtering.
-
-**Request Examples:**
-
-```
-GET /api/v1/sensors/sensor-data/chart?limit=50
-GET /api/v1/sensors/sensor-data/chart?limit=all
-GET /api/v1/sensors/sensor-data/chart?date=2024-01-15
-GET /api/v1/sensors/sensor-data/chart?date=2024-01-15&limit=100
-```
-
-**Response:**
-
-```json
-[
-    {
-        "_id": "507f1f77bcf86cd799439011",
-        "temperature": 25.5,
-        "humidity": 60.2,
-        "light": 45.8,
-        "timestamp": "2024-01-15T10:30:00+07:00"
-    },
-    {
-        "_id": "507f1f77bcf86cd799439012",
-        "temperature": 26.0,
-        "humidity": 58.5,
-        "light": 50.2,
-        "timestamp": "2024-01-15T10:31:00+07:00"
-    }
-]
-```
-
-#### POST `/api/v1/sensors/led-control`
-
-Control LED state via MQTT.
-
-**Request Body:**
-
-```json
-{
-    "led_id": "LED1",
-    "action": "ON"
-}
-```
-
-**Validation:**
-
--   `led_id`: Must be `LED1`, `LED2`, or `LED3`
--   `action`: Must be `ON` or `OFF`
-
-**Success Response:**
-
-```json
-{
-    "status": "success",
-    "message": "Command LED1_ON sent successfully"
-}
-```
-
-**Error Response:**
-
-```json
-{
-    "status": "error",
-    "message": "Invalid led_id"
-}
-```
-
-#### GET `/api/v1/sensors/led-status`
-
-Get current LED status and pending commands.
-
-**Response:**
-
-```json
-{
-    "status": "success",
-    "data": {
-        "led_states": {
-            "LED1": "ON",
-            "LED2": "OFF",
-            "LED3": "ON"
-        },
-        "pending_commands": {
-            "LED1": false,
-            "LED2": true,
-            "LED3": false
-        }
-    }
-}
-```
-
-#### GET `/api/v1/sensors/action-history`
-
-Get LED action history with filtering and pagination.
-
-**Request Examples:**
-
-```
-GET /api/v1/sensors/action-history?page=1&per_page=20
-GET /api/v1/sensors/action-history?device_filter=LED1
-GET /api/v1/sensors/action-history?state_filter=ON
-GET /api/v1/sensors/action-history?search=LED1&device_filter=LED1&state_filter=ON
-GET /api/v1/sensors/action-history?sort_field=timestamp&sort_order=asc
-```
-
-**Response:**
-
-```json
-{
-    "status": "success",
-    "data": [
-        {
-            "_id": "507f1f77bcf86cd799439013",
-            "type": "led_control",
-            "led": "LED1",
-            "action": "LED1_ON",
-            "state": "ON",
-            "timestamp": "2024-01-15T10:30:00+07:00",
-            "device": "LED1",
-            "description": "Điều khiển LED1 ON"
-        }
-    ],
-    "pagination": {
-        "page": 1,
-        "per_page": 10,
-        "total_count": 50,
-        "total_pages": 5,
-        "has_prev": false,
-        "has_next": true
-    },
-    "filters": {
-        "search": "",
-        "device": "all",
-        "state": "all"
-    },
-    "sort": {
-        "field": "timestamp",
-        "order": "desc"
-    },
-    "count": 10,
-    "total_count": 50
-}
-```
-
-## Project Structure
+## Cấu trúc thư mục
 
 ```text
 IoT_Project/
-├── .gitignore
-├── README.md
-│
-├── backend/
-│   ├── .env
-│   ├── .env.example
-│   ├── main.py                                            # Entry point
-│   ├── requirements.txt                                   # Python dependencies
-│   ├── app/
-│   │   ├── __init__.py
-│   │   ├── api/                                           # API routes and blueprints
-│   │   │   ├── routes.py
-│   │   │   ├── swagger_config.py
-│   │   │   ├── __init__.py
-│   │   │   └── v1/
-│   │   │       ├── auth.py
-│   │   │       ├── sensors.py
-│   │   │       └── __init__.py
-│   │   │
-│   │   ├── core/                                          # Configuration and database
-│   │   │   ├── config.py
-│   │   │   ├── database.py
-│   │   │   ├── logger_config.py
-│   │   │   ├── timezone_utils.py
-│   │   │   └── __init__.py
-│   │   │
-│   │   ├── models/                                        # Data models
-│   │   │   ├── device.py
-│   │   │   ├── sensor_data.py
-│   │   │   └── __init__.py
-│   │   │
-│   │   └── services/                                      # Business logic
-│   │       ├── data_service.py
-│   │       ├── led_control_service.py
-│   │       ├── mqtt_service.py
-│   │       ├── status_service.py
-│   │       ├── validation_service.py
-│   │       └── __init__.py
-│   │
-│   ├── threshold_config.json                         # Sensor thresholds
-│   └── (runtime .env is not committed)
-│
+├── backend/                 # Máy chủ Flask, API và kết nối MongoDB/MQTT
+│   ├── main.py              # Tệp khởi động
+│   ├── app/                 # Xử lý API, dữ liệu và thiết bị
+│   ├── .env.example         # Cấu hình mẫu
+│   └── requirements.txt     # Thư viện Python
 ├── frontend/
-│   ├── public/                                            # HTML pages
-│   │   ├── action-history.html
-│   │   ├── home-page.html
-│   │   ├── login.html
-│   │   ├── profile.html
-│   │   ├── sensor-data.html
-│   │   └── statistics.html
-│   │
-│   └── src/
-│       ├── components/                                    # UI components
-│       │   ├── led-stats-badge.js
-│       │   ├── threshold-settings-popup.js
-│       │   └── update-indicator.js
-│       │
-│       ├── control/                                       # Controllers
-│       │   ├── action-history-table-control.js
-│       │   ├── home-page-chart-control.js
-│       │   ├── home-page-led-control.js
-│       │   ├── home-page-sensor-card-control.js
-│       │   ├── led-stats-panel-control.js
-│       │   ├── login-control.js
-│       │   ├── profile-control.js
-│       │   ├── sensor-data-table-control.js
-│       │   └── threshold-stats-control.js
-│       │
-│       ├── pages/                                         # Page loaders
-│       │   ├── action-history-loader.js
-│       │   ├── home-page-loader.js
-│       │   └── sensor-data-loader.js
-│       │
-│       ├── services/                                      # API services
-│       │   ├── api.js
-│       │   ├── auth-service.js
-│       │   └── mock-data.js
-│       │
-│       ├── styles/                                        # CSS files
-│       │   ├── main.css
-│       │   ├── pages.css
-│       │   └── profile.css
-│       │
-│       └── view/                                          # Views and templates
-│           ├── charts/
-│           │   ├── home-page-chart.js
-│           │
-│           ├── sensors/
-│           │   └── home-page-sensor-card.js
-│           ├── stats/
-│           │   └── led-stats-panel.js
-│           │
-│           └── table/
-│               ├── action-history-table.js
-│               └── sensor-data-table.js
-│
-└── hardware/
-    └── IoT_Device/
-        ├── IoT_Device.ino                                 # ESP32 code
-        ├── isrgrootx1.pem                                 # TLS certificate
-        └── pubsub.txt                                     # MQTT test commands
+│   ├── public/              # Các trang HTML
+│   └── src/                 # JavaScript và CSS
+├── hardware/IoT_Device/     # Chương trình ESP32
+└── docs.pdf                 # Tài liệu dự án
 ```
 
-## MQTT Topics
+## Lỗi thường gặp
 
--   **`esp32/iot/data`**: Sensor data from ESP32 (temperature, humidity, light)
--   **`esp32/iot/control`**: LED control commands from backend to ESP32
--   **`esp32/iot/action-history`**: LED status changes and action history
-
-### MQTT Message Formats
-
-#### Sensor Data (`esp32/iot/data`)
-
-```json
-{
-    "temperature": 25.5,
-    "humidity": 60.2,
-    "light": 45.8
-}
-```
-
-#### LED Control (`esp32/iot/control`)
-
-```text
-LED1_ON
-LED1_OFF
-LED2_ON
-LED2_OFF
-LED3_ON
-LED3_OFF
-```
-
-#### Action History (`esp32/iot/action-history`)
-
-```json
-{
-    "type": "led_status",
-    "led": "LED1",
-    "state": "ON"
-}
-```
-
-## Development
-
-### Backend Development
-
-Backend uses Flask with modular architecture:
-
--   **Blueprints** for API organization
--   **Services** for business logic
--   **Models** for data structures
--   **Core** for configuration and utilities
-
-### Frontend Development
-
-Frontend uses vanilla JavaScript with a modular structure:
-
--   **Pages** load each HTML page and wire its modules
--   **Control** modules handle page interactions and state changes
--   **View** modules render charts, cards, panels, and tables
--   **Services** handle API calls, authentication, and mock fallback data
--   **Components** provide reusable UI elements
-
-### Testing MQTT
-
-Use mosquitto client to test MQTT (example commands in [`hardware/IoT_Device/pubsub.txt`](hardware/IoT_Device/pubsub.txt)):
-
-```bash
-# Subscribe to sensor data
-mosquitto_sub -h your-hivemq-broker -p 8883 -u username -P password -t "esp32/iot/data"
-
-# Subscribe to action history
-mosquitto_sub -h your-hivemq-broker -p 8883 -u username -P password -t "esp32/iot/action-history"
-
-# Send LED control command
-mosquitto_pub -h your-hivemq-broker -p 8883 -u username -P password -t "esp32/iot/control" -m "LED1_ON"
-
-# Send test sensor data
-mosquitto_pub -h your-hivemq-broker -p 8883 -u username -P password -t "esp32/iot/data" -m '{"temperature":25.0,"humidity":60.0,"light":80.0}'
-```
-
-## Troubleshooting
-
-### Common Issues
-
-#### Hardware Issues
-
-1. **ESP32 cannot connect to WiFi:**
-
-    - Check SSID and password in [`hardware/IoT_Device/IoT_Device.ino`](hardware/IoT_Device/IoT_Device.ino)
-    - Ensure WiFi is in 2.4GHz mode
-    - Verify signal strength
-
-2. **LED control not working:**
-    - Check MQTT broker connection
-    - Verify LED control topic subscription
-    - Check ESP32 MQTT client status
-
-#### Backend Issues
-
-3. **MQTT connection failed:**
-
-    - Check broker host and port in `.env` file
-    - Verify username/password
-    - Test with mosquitto client (see [Testing MQTT](#testing-mqtt))
-
-4. **Backend not receiving data:**
-
-    - Check MQTT broker connection
-    - Verify topic names match configuration
-    - Check MongoDB connection
-
-5. **NoSQL queries not working:**
-    - Verify MongoDB connection
-    - Check collection names and indexes
-    - Review query syntax and parameters
-
-#### Frontend Issues
-
-6. **Frontend not displaying data:**
-    - Check browser console for errors
-    - Verify API endpoints are accessible at `http://localhost:5000`
-    - Check CORS configuration
-    - Ensure backend is running on correct port
-
-## Contributing
-
-We welcome contributions! Here's how you can help:
-
-1. **Fork the repository**
-2. **Create a feature branch** (`git checkout -b feature/amazing-feature`)
-3. **Commit your changes** (`git commit -m 'Add some amazing feature'`)
-4. **Push to the branch** (`git push origin feature/amazing-feature`)
-5. **Open a Pull Request**
-
-### Development Guidelines
-
--   Follow the existing code structure and patterns
--   Add appropriate comments and documentation
--   Test your changes thoroughly
--   Ensure all existing tests pass
-
-## License
-
-This project is developed for educational and research purposes.
-
-## Support
-
-For support, questions, or contributions, please:
-
--   Create an issue on the GitHub repository
--   Check the [Troubleshooting](#troubleshooting) section first
--   Review the [API Documentation](http://localhost:5000/docs/) when the backend is running
+- **Thiếu mô-đun `jwt`:** cài `PyJWT` bằng Python trong môi trường `.venv`.
+- **Không kết nối được MongoDB:** kiểm tra chuỗi kết nối, tài khoản và quyền truy cập mạng.
+- **Không có dữ liệu cảm biến:** kiểm tra nguồn ESP32, Wi-Fi, tài khoản MQTT và chủ đề gửi dữ liệu.
+- **LED không phản hồi:** kiểm tra dây nối, kết nối MQTT và chủ đề điều khiển ở cả ESP32 lẫn máy chủ.
+- **Giao diện không gọi được API:** chạy `main.py` và dùng cổng `5000`; nếu đổi cổng, cập nhật địa chỉ API trong `frontend/src/services/api.js` và `auth-service.js`.
