@@ -147,21 +147,3 @@ class MQTTManager:
         except Exception as e:
             logger.error(f"Error stopping MQTT client: {e}")
 
-    def publish_message(self, topic: str, message: str) -> bool:
-        try:
-            if not self.is_connected:
-                logger.warning("MQTT client not connected")
-                return False
-
-            result = self.mqtt_client.publish(topic, message)
-
-            if result.rc == mqtt.MQTT_ERR_SUCCESS:
-                logger.info(f"Message published to topic '{topic}': {message}")
-                return True
-            else:
-                logger.error(f"Failed to publish message, return code: {result.rc}")
-                return False
-
-        except Exception as e:
-            logger.error(f"Error publishing message: {e}")
-            return False
