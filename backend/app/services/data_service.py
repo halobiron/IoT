@@ -1,16 +1,14 @@
 from typing import Dict, Any
-from datetime import datetime
 from app.core.database import DatabaseManager
 from app.services.mqtt_service import MQTTManager
 from app.core.logger_config import logger
-from app.core.timezone_utils import get_current_vietnam_time
 
 
 class IoTMQTTReceiver:
 
     def __init__(self):
         self.db_manager = DatabaseManager()
-        self.mqtt_manager = MQTTManager(message_callback=self.process_sensor_data, status_callback=self.process_action_status)
+        self.mqtt_manager = MQTTManager(message_callback=self.process_sensor_data)
 
     def process_sensor_data(self, sensor_data: Dict[str, Any]):
         try:
@@ -23,25 +21,6 @@ class IoTMQTTReceiver:
 
         except Exception as e:
             logger.error(f"Error processing sensor data: {e}")
-
-    def process_action_status(self, status_data: Dict[str, Any]):
-        try:
-            current_time = get_current_vietnam_time()
-            logger.info(f"process_action_status received at {current_time.isoformat()}: {status_data}")
-            if not isinstance(status_data, dict):
-                logger.warning(f"Invalid status data type: {status_data}")
-                return
-
-            led = status_data.get('led')
-            state = status_data.get('state')
-            if not led or not state:
-                logger.warning(f"Missing led/state in status message: {status_data}")
-                return
-
-            logger.info(f"LED status message validated: {led}={state}. LEDControlService will handle database storage.")
-
-        except Exception as e:
-            logger.error(f"Error processing action status: {e}")
 
     def start_receiving(self):
         try:
