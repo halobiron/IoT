@@ -8,7 +8,7 @@ Bài tập lớn IoT sử dụng ESP32 để đo nhiệt độ, độ ẩm, ánh
 - Bật, tắt từng LED hoặc cả 3 LED.
 - Tra cứu dữ liệu cảm biến và lịch sử bật, tắt LED.
 - Tìm kiếm, sắp xếp và phân trang dữ liệu.
-- Đăng nhập, xem hồ sơ và cài đặt ngưỡng cảnh báo cảm biến.
+- Đăng nhập, xem hồ sơ và hiển thị trạng thái cảnh báo cảm biến.
 
 ## Thành phần
 

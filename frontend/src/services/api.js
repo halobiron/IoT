@@ -65,17 +65,6 @@ class SensorDataService {
         return request(`${API_BASE_URL}/available-led-dates`);
     }
 
-    static getThresholds() {
-        return request(`${API_BASE_URL}/thresholds`);
-    }
-
-    static updateThresholds(thresholds) {
-        return request(`${API_BASE_URL}/thresholds`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(thresholds),
-        });
-    }
 }
 
 export default SensorDataService;
