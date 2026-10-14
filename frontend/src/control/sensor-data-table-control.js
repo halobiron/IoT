@@ -80,6 +80,12 @@ class SensorDataTableController {
                 },
             });
         }
+        timeSearchInput?.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                this.applyFilters();
+            }
+        });
         if (searchCriteria) {
             searchCriteria.addEventListener("change", (e) => {
                 this.searchCriteria = e.target.value || "all";

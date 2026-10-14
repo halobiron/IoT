@@ -1,3 +1,5 @@
+import { formatTimestamp, enableTimestampCopy } from "../../utils/copy-timestamp.js";
+
 class ActionHistoryTable {
     constructor() {
         this.currentItems = [];
@@ -190,23 +192,8 @@ class ActionHistoryTable {
         userTd.textContent = item.user || item.username || item.operator || "Hệ thống";
 
         const tsTd = document.createElement("td");
-        let ts = "";
-        if (item.timestamp) {
-            try {
-                const date = new Date(item.timestamp);
-                ts = date.toLocaleString("vi-VN", {
-                    year: "numeric",
-                    month: "2-digit",
-                    day: "2-digit",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit",
-                });
-            } catch (e) {
-                ts = item.timestamp;
-            }
-        }
-        tsTd.textContent = ts;
+        tsTd.textContent = formatTimestamp(item.timestamp);
+        enableTimestampCopy(tsTd);
 
         tr.appendChild(sttTd);
         tr.appendChild(ledTd);

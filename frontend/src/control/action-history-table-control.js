@@ -306,8 +306,7 @@ class ActionHistoryTableControl {
     _updateSearchPlaceholder(criteria) {
         const input = this.container.querySelector("#actionHistorySearchInput");
         if (!input) return;
-        input.placeholder =
-            "Tìm kiếm theo thời gian (VD: 00:17:07 21/09/2025, 00:17 21/09/2025)";
+        input.placeholder = "DD/MM/YYYY HH:mm:ss";
     }
 
     _attachSearchListeners() {
@@ -340,7 +339,7 @@ class ActionHistoryTableControl {
         });
 
         if (this.searchTerm) {
-            input._flatpickr?.setDate(this.searchTerm, false, "H:i d/m/Y");
+            input.value = this.searchTerm;
             if (clearBtn) clearBtn.style.display = "block";
         }
 
@@ -389,7 +388,7 @@ class ActionHistoryTableControl {
 
         if (clearBtn) {
             clearBtn.addEventListener("click", async () => {
-                if (input) input._flatpickr?.clear();
+                if (input) input.value = "";
                 this.searchTerm = "";
                 clearBtn.style.display = "none";
                 this.currentPage = 1;

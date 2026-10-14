@@ -74,13 +74,11 @@ export function initializeDatePicker(element, {
 export function initializeDateTimeSearchPicker(element, { onChange }) {
     if (!element) return null;
 
-    return flatpickr(element, {
-        dateFormat: "H:i d/m/Y",
-        enableTime: true,
-        time_24hr: true,
-        minuteIncrement: 1,
-        locale: vietnameseLocale,
-        disableMobile: true,
-        onChange,
-    });
+    element.type = "text";
+    element.removeAttribute("readonly");
+    element.placeholder = "DD/MM/YYYY HH:mm:ss";
+    element.setAttribute("aria-label", "Nh\u1eadp th\u1eddi gian theo DD/MM/YYYY HH:mm:ss");
+    element.autocomplete = "off";
+    element.addEventListener("input", () => onChange([], element.value.trim()));
+    return null;
 }

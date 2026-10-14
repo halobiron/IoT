@@ -1,3 +1,5 @@
+import { formatTimestamp, enableTimestampCopy } from "../../utils/copy-timestamp.js";
+
 class SensorDataTable {
     constructor(containerId) {
         this.container = document.getElementById(containerId);
@@ -92,11 +94,12 @@ class SensorDataTable {
                         <td>${rowNumber}</td>
                         <td>${name}</td>
                         <td>${value}</td>
-                        <td>${timestamp}</td>
+                        <td class="copy-timestamp">${timestamp}</td>
                     </tr>
                 `;
             })
             .join("");
+        this.tableBody.querySelectorAll(".copy-timestamp").forEach(enableTimestampCopy);
     }
 
     updateSortHeaders() {
@@ -231,20 +234,7 @@ class SensorDataTable {
     }
 
     formatDateTime(timestamp) {
-        if (!timestamp) return "N/A";
-        try {
-            const date = new Date(timestamp);
-            return date.toLocaleString("vi-VN", {
-                year: "numeric",
-                month: "2-digit",
-                day: "2-digit",
-                hour: "2-digit",
-                minute: "2-digit",
-                second: "2-digit",
-            });
-        } catch (e) {
-            return timestamp.toString();
-        }
+        return formatTimestamp(timestamp);
     }
 
     exportToCSV() {

@@ -14,6 +14,17 @@ led_service = LEDControlService()
 led_stats_service = LEDStatsService()
 
 
+def parse_time_filter(value):
+    for fmt in ('%d/%m/%Y %H:%M:%S', '%d/%m/%Y %H:%M',
+                '%H:%M:%S %d/%m/%Y', '%H:%M %d/%m/%Y'):
+        try:
+            selected = datetime.strptime(value, fmt)
+            return selected.replace(second=selected.second if '%S' in fmt else 59)
+        except ValueError:
+            continue
+    raise ValueError('M\u1ed1c th\u1eddi gian kh\u00f4ng h\u1ee3p l\u1ec7. D\u00f9ng DD/MM/YYYY HH:mm:ss')
+
+
 @sensors_bp.route("/sensor-data-list")
 def sensor_data_list():
     try:
@@ -72,8 +83,9 @@ def sensor_data_list():
 
             if search_criteria == 'time':
                 try:
-                    selected_time = datetime.strptime(search_term, '%H:%M %d/%m/%Y')
-                    end_time = create_vietnam_datetime(selected_time.year, selected_time.month, selected_time.day, selected_time.hour, selected_time.minute, 59, 999999)
+                    selected_time = parse_time_filter(search_term)
+                    end_time = create_vietnam_datetime(selected_time.year, selected_time.month, selected_time.day, selected_time.hour, selected_time.minute,
+                            selected_time.second, 999999)
                     data = db.search_by_multiple_criteria({'end_time': end_time})
                 except ValueError:
                     data = []
@@ -124,10 +136,11 @@ def sensor_data_list():
 
                 if end_time_term:
                     try:
-                        selected_time = datetime.strptime(end_time_term, '%H:%M %d/%m/%Y')
+                        selected_time = parse_time_filter(end_time_term)
                         criteria['end_time'] = create_vietnam_datetime(
                             selected_time.year, selected_time.month, selected_time.day,
-                            selected_time.hour, selected_time.minute, 59, 999999
+                            selected_time.hour, selected_time.minute,
+                            selected_time.second, 999999
                         )
                     except ValueError:
                         return jsonify({"status": "error", "message": "Mốc thời gian không hợp lệ"}), 400
@@ -534,10 +547,11 @@ def action_history():
         end_time = None
         if end_time_term:
             try:
-                selected_time = datetime.strptime(end_time_term, '%H:%M %d/%m/%Y')
+                selected_time = parse_time_filter(end_time_term)
                 end_time = create_vietnam_datetime(
                     selected_time.year, selected_time.month, selected_time.day,
-                    selected_time.hour, selected_time.minute, 59, 999999
+                    selected_time.hour, selected_time.minute,
+                            selected_time.second, 999999
                 )
             except ValueError:
                 return jsonify({"status": "error", "message": "Mốc thời gian không hợp lệ", "data": []}), 400
